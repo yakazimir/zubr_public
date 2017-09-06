@@ -134,20 +134,22 @@ Inside of Zubr is a tool called `FunctionAssistant` that allows you to
 build API query engines for source code (currently Python) collections. Below is an
 example run involving the NLTK python2 project. 
 
-```
-##
-mkdir examples/code\_projects
-cd examples/code\_projects
+ ```
+     ## 
+     mkdir examples/codelibs
+     cd examples/codelibs
 
-## download a project (e.g., Pyglet) 
-git clone https://github.com/adamlwgriffiths/Pyglet/tree/master/pyglet 
-cd ../../
+     ## download a project (e.g., Pyglet) 
+     git clone git@github.com:adamlwgriffiths/Pyglet.git
+     cd ../../
 
-##
-./run_zubr pipeline bin/build\_query 
+     ## extract data, train model, build query object (add preferred settings accordingly)
+    ./run_zubr pipeline bin/build_query --proj examples/codelibs/Pyglet --dir examples/pyglet_exp --aheuristic grow-diag --lrate 0.001 --eval_val --miters1 5 --store_feat --class_info --online_addr  https://github.com/adamlwgriffiths/Pyglet/tree/master/pyglet --src_loc pyglet
 
+    ## launch the server 
+    python -m zubr.web.QueryServer --qmodels examples/pyglet_exp/query --port 5000
 
-```
+ ```
 
 
 
