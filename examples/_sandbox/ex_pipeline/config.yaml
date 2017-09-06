@@ -1,0 +1,36 @@
+encoding : utf-8
+emax : 100
+atraining : examples/aligner/hansards
+end : 1000
+log : 
+start : 0
+aligntesting : False
+dump_models : False
+exitonfail : True
+cleanup : True
+skip_tasks : 
+trainstop : 10000000
+readme : 
+aiters3 : 5
+aiters2 : 5
+param2 : False
+maxtre : 10
+lowercase : True
+override : False
+logfile : pipeline.log
+aiters : 5
+amax : 90
+amode : train
+lower : True
+target : e
+loglevel : DEBUG
+modeltype : ibm1
+aligntraining : False
+pipeline_backup : False
+source : f
+param1 : False
+restore_pipeline : 
+backup : False
+dir : /media/sf_projects/zubr_public/examples/_sandbox/ex_pipeline
+build_data_only : False
+
