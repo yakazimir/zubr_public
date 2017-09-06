@@ -25,8 +25,9 @@ clean-pyc:
 	find . -name '*~' -exec rm -f {} +
 
 clean-cython:
-	find zubr/ -name '*.so' -exec rm -f {} +
-	find zubr/ -name '*.c' -exec rm -f {} +
+	rm -rf zubr/*.so
+	rm -rf zubr/*.c
+	rm -rf zubr/*.cpp
 
 clean: clean-build clean-pyc clean-cython
 
