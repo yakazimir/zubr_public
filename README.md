@@ -139,32 +139,17 @@ example run involving the NLTK python2 project.
      mkdir examples/codelibs
      cd examples/codelibs
 
-     ## download a project (e.g., Pyglet) 
+     ## download a project (e.g., Pyglet, really small project, won't have too much to query, but demonstrates how pipeline works) 
      git clone git@github.com:adamlwgriffiths/Pyglet.git
      cd ../../
 
      ## extract data, train model, build query object (add preferred settings accordingly)
-    ./run_zubr pipeline bin/build_query --proj examples/codelibs/Pyglet --dir examples/pyglet_exp --aheuristic grow-diag --lrate 0.001 --eval_val --miters1 5 --store_feat --class_info --online_addr  https://github.com/adamlwgriffiths/Pyglet/tree/master/pyglet --src_loc pyglet
+    ./run_zubr pipeline bin/build_server --proj examples/codelibs/Pyglet --dir examples/pyglet_exp --aheuristic grow-diag --lrate 0.001 --eval_val --miters1 5 --store_feat --class_info --online_addr  https://github.com/adamlwgriffiths/Pyglet/tree/master/pyglet --src_loc pyglet
 
     ## launch the server 
-    python -m zubr.web.QueryServer --qmodels examples/pyglet_exp/query --port 5000
+    ./run_zubr queryserver --qmodels examples/pyglet_exp/query --port 5000
 
  ```
-
-
-
-    ## download a project, say tensorflow 
-     bash-4.3$ get clone https://github.com/tensorflow/tensorflow
-
-    ## train a model using build_query pipeline (this is a larger set..this took me around 50 minutes to train)
-     bash-4.3$ ./run_zubr pipeline bin/build_query --proj
-     /path/to/tensorflow/ --dir output/dir --aheuristic grow-diag
-     --rlambda 0.0 --lrate1 0.001 --learner lsgd --eval_val --miters 5
-     --lang en --store_feat --class_info --online_addr /git/path/to/src --src_loc tensorflow
-    
-    ## launch the server
-    bash-4.3$ python -m zubr.web.QueryServer --qmodels /output/dir/query --port 5000 
-
 
 If you just want to extract a parallel dataset from an example API
 (e.g.,  the one above), run the following with --stop:

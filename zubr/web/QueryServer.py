@@ -373,7 +373,9 @@ def main(argv):
 
     try: 
         ## by default, the name of directory where
-        ## model is should be the name of the project 
+        ## model is should be the name of the project
+
+        
         for project in config.qmodels.split("+"):
             pname = os.path.basename(os.path.dirname(project))
             names.append(pname.lower())
@@ -383,7 +385,7 @@ def main(argv):
                 shutil.copy(rlist,copied_rlist)
             
             server_loader.info('Building model for %s, might take a while..' % pname)
-            try: 
+            try:
                 model = RerankerDecoderInterface.load(project)
             except Exception,e:
                 server_loader.error('Error building model:%s, skipping' % project)
