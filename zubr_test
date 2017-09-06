@@ -1,0 +1,1 @@
+python -m zubr.zubr_lisp --test zubr/zubr_lisp/test
