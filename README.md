@@ -171,7 +171,7 @@ to all the data.
 Reproducing Experiments 
 -----------------
 
-In $ZUBR/experiments you will find scripts for downloading pipelines
+In experiments/ you will find scripts for downloading pipelines
 for various reported results.
 
 Development
