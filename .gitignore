@@ -1,0 +1,93 @@
+*.py[cod]
+
+# C extensions
+*.so
+
+# Packages
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+venv*/
+pyvenv*/
+env*/
+
+## local datasets 
+
+datasets/reranker/*
+datasets
+datasets/*
+pub
+
+
+## local experiment runs
+experiments/technical_documentation/runs/*
+
+# tex stuff 
+
+*.toc
+*.aux
+*.bbl
+*.bst
+*.blg
+*.log
+*.nav
+*.snm
+
+pub/*
+datasets/technical_documentation/*
+
+
+## zubr c sources 
+
+zubr/*.c
+
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+.coverage.*
+nosetests.xml
+htmlcov
+
+# Translations
+*.mo
+
+# Mr Developer
+.mr.developer.cfg
+.project
+.pydevproject
+.idea
+*.iml
+*.komodoproject
+
+# Complexity
+output/*.html
+output/*/index.html
+
+# Sphinx
+docs/_build
+
+.DS_Store
+*~
+.*.sw[po]
+.build
+.ve
+.bootstrap
+# Cookiecutter
+output/
+boilerplate/
+*.bak
+python-nameless
