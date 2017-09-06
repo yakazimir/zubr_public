@@ -131,24 +131,26 @@ Building an API query engine
 -----------------
 
 Inside of Zubr is a tool called `FunctionAssistant` that allows you to
-build API query engines for source code collections. Below is an
+build API query engines for source code (currently Python) collections. Below is an
 example run involving the NLTK python2 project. 
 
     ## download a project, say tensorflow 
-    bash-4.3$ get clone https://github.com/tensorflow/tensorflow
+     bash-4.3$ get clone https://github.com/tensorflow/tensorflow
 
     ## train a model using build_query pipeline (this is a larger set..this took me around 50 minutes to train)
-     bash-4.3$ ./run_zubr pipeline bin/build_query --proj /path/to/tensorflow/ --dir output/dir --aheuristic grow-diag --rlambda 0.0 --lrate1 0.001 --learner lsgd --eval_val --miters 5 --lang en --store_feat --class_info --online_addr /git/path/to/src
+     bash-4.3$ ./run_zubr pipeline bin/build_query --proj
+     /path/to/tensorflow/ --dir output/dir --aheuristic grow-diag
+     --rlambda 0.0 --lrate1 0.001 --learner lsgd --eval_val --miters 5
+     --lang en --store_feat --class_info --online_addr /git/path/to/src --src_loc tensorflow
     
     ## launch the server
-    bash-4.3$ python -m zubr.web.QueryServer --qmodels
-    /output/dir/query --port 5000 
+    bash-4.3$ python -m zubr.web.QueryServer --qmodels /output/dir/query --port 5000 
 
 
 If you just want to extract a parallel dataset from an example API
 (e.g.,  the one above), run the following with --stop:
 
-     bash-4.3$ ./run_zubr pipeline bin/build_query --proj /path/to/tensorflow/ --dir output/dir --stop 2
+     bash-4.3$ ./run_zubr pipeline bin/build_query --proj /path/to/tensorflow/ --src_loc tensorflow --dir output/dir --end 2
 
 Reproducing Experiments 
 -----------------
