@@ -133,7 +133,7 @@ Building an API query engine
 
 Inside of Zubr is a tool called `FunctionAssistant` that allows you to
 build API query engines for source code (currently Python) collections. Below is an
-example run involving the NLTK python2 project. 
+example run involving the Pyglet project. 
 
  ```
      ## 
@@ -163,6 +163,10 @@ the split is done appears to be specific to each os. So running this
 on different computers might get different results. It's therefore
 much better to build a single dataset first, then run experiments on a
 set of static files. 
+
+Please also note that the extractor might miss a lot of documentation,
+and you might need to message the src directory structure to point it
+to all the data. 
 
 Reproducing Experiments 
 -----------------
