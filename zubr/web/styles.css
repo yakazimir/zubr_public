@@ -1,0 +1,101 @@
+body {
+    color: #2F4F4F;
+    text-color:  #2F4F4F;
+    background-color: #FFFFFF;
+    font-family: Arial;
+    margin-top:40px;
+    }
+#page{
+	width:620px;
+	margin:50px auto 0;
+}    
+div#queryresult {
+    color: #2F4F4F;
+    background-color: #FFFFFF;
+    visibility: hidden;
+    /* width: 100%; */
+    padding:50px 50px 30px;
+    }
+textarea#querytypein {
+    color: #2F4F4F;
+    vertical-align: middle;
+    text-align: center;
+    width: 70%;
+    border: 1px solid #888;
+    resize : none;
+    outline : none;
+    height: 2em;
+    word-break: break-word;
+    }
+h1{
+    font-family:Corbel,'Myriad Pro',Arial, Helvetica, sans-serif;
+    background:url('Codeoogle-header.png') no-repeat center top;
+    text-indent:-9999px;
+    overflow:hidden;
+    height:60px;
+}
+select#ach  {
+   background : #F0F0F0;
+   border: none;
+   font-size: 10px;
+   height: 22px;
+   padding: 5px; /* If you add too much padding here, the options won't show in IE */
+   width: 60px;
+   outline: none;
+   -webkit-appearance: none;
+   -webkit-border-radius: 0px;
+}
+input#searchBar  {
+   background : #87CEFA;
+   border: none;
+   font-size: 10px;
+   height: 22px;
+   padding: 5px; /* If you add too much padding here, the options won't show in IE */
+   width: 60px;
+   outline: none;
+   box-sizing: border-box;
+   -webkit-appearance: none;
+   -webkit-border-radius: 0px;
+   shape: square;
+}
+input#generate  {
+   background : #87CEFA;
+   border: none;
+   font-size: 10px;
+   height: 22px;
+   padding: 5px; /* If you add too much padding here, the options won't show in IE */
+   width: 60px;
+   outline: none;
+   box-sizing: border-box;
+   -webkit-appearance: none;
+   -webkit-border-radius: 0px;
+   shape: square;
+}
+select#other  {
+   background : #F0F0F0;
+   border: none;
+   font-size: 10px;
+   height: 22px;
+   padding: 5px; 
+   width: 60px;
+   outline: none;
+   box-sizing: border-box;
+   -webkit-appearance: none;
+   -webkit-border-radius: 0px;
+   shape: square;
+}
+select#rsize  {
+   background : #F0F0F0;
+   border: none;
+   font-size: 10px;
+   height: 22px;
+   padding: 5px; 
+   width: 60px;
+   outline: none;
+   -webkit-appearance: none;
+   -webkit-border-radius: 0px;
+}
+
+.formfield * {
+  vertical-align: middle;
+}
