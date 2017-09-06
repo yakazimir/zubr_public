@@ -134,6 +134,23 @@ Inside of Zubr is a tool called `FunctionAssistant` that allows you to
 build API query engines for source code (currently Python) collections. Below is an
 example run involving the NLTK python2 project. 
 
+```
+##
+mkdir examples/code\_projects
+cd examples/code\_projects
+
+## download a project (e.g., Pyglet) 
+git clone https://github.com/adamlwgriffiths/Pyglet/tree/master/pyglet 
+cd ../../
+
+##
+./run_zubr pipeline bin/build\_query 
+
+
+```
+
+
+
     ## download a project, say tensorflow 
      bash-4.3$ get clone https://github.com/tensorflow/tensorflow
 
