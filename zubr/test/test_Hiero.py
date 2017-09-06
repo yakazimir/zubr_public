@@ -99,8 +99,8 @@ class TestHieroRule(object):
         ok_(self.rule2.freq,10)
         ok_(self.rule3.freq,1)
 
-    def test_tuple_rep(self):
-        assert_equal(HieroRule.from_tuple(self.rule1.tuple_rep()),self.rule1)
+    # def test_tuple_rep(self):
+    #     assert_equal(HieroRule.from_tuple(self.rule1.tuple_rep()),self.rule1)
 
         
         
