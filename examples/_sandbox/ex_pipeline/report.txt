@@ -1,6 +1,0 @@
-------------------------
-run: 2017-09-06 12:41:10.120530
-level: 0, task: ex_pipeline.setup_pipeline, time (seconds): 0.000108957290649
-level: 1, task: zubr.Alignment.main, time (seconds): 0.306087970734
-level: 2, task: ex_pipeline.close_pipeline, time (seconds): 0.000153064727783
-
