@@ -2,7 +2,8 @@ Zubr: A Semantic Parsing Toolkit
 ==================
 
 This is a slimmed down version of a cython/python toolkit for building
-semantic parsing models (a more general release is in the works).
+semantic parsing models (a more general release is in the works, with
+additional features).
 
 Please use at your own risk, this is academic code and not well tested
 (and in some cases quite hacky).
@@ -152,9 +153,16 @@ example run involving the NLTK python2 project.
  ```
 
 If you just want to extract a parallel dataset from an example API
-(e.g.,  the one above), run the following with --stop:
+(e.g.,  the one above), run the following with --end:
 
      bash-4.3$ ./run_zubr pipeline bin/build_query --proj /path/to/tensorflow/ --src_loc tensorflow --dir output/dir --end 2
+
+
+Please note that when building datasets and experiment splits, the way
+the split is done appears to be specific to each os. So running this
+on different computers might get different results. It's therefore
+much better to build a single dataset first, then run experiments on a
+set of static files. 
 
 Reproducing Experiments 
 -----------------
