@@ -24,7 +24,7 @@
 SCRIPT_LOC="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ZUBR_LOC="$( dirname $SCRIPT_LOC )"
 TECH_DOC=$ZUBR_LOC/experiments/technical_documentation
-echo "...MOVING UP TO ZUBR SRC..."
+echo "...MOVING UP TO ZUBR SRC DIR..."
 cd $ZUBR_LOC
 
 ## setup the technical documentation dir
@@ -34,10 +34,21 @@ if [ ! -d "$TECH_DOC" ] ; then
     mkdir $TECH_DOC
 fi
 
+## check if the data already exists, if so break
+
+
+## check to continue
+
+read -p "This is a lot of data, Continue (Y/n)? " choice
+case "$choice" in 
+  Y ) echo "ACCEPTED PROMPT";;
+  n|N ) exit;;
+  * ) exit;;
+esac
+
 ### GETTTING THE CODE DATA: the data is hosted here for both datasets:
 ### https://github.com/yakazimir/Code-Datasets
 
-ZIP=$TECH_DOC/master.zip
 
 if [ ! -f "$ZIP" ] ; then
     echo "...DOWNLOADING THE DATA AND SCRIPTS...."
@@ -55,7 +66,7 @@ mv -f experiments/technical_documentation/Code-Datasets-master/*/ experiments/te
 ## unzip the acl_emnlp files
 echo "...UNZIPPING THE PIPELINE DATA..."
 unzip experiments/technical_documentation/Code-Datasets-master/acl_emnlp.zip -d $TECH_DOC 
-mv -f experiments/technical_documentation/acl_emnlp/* experiments/technical_documentation
+ mv -f experiments/technical_documentation/acl_emnlp/* experiments/technical_documentation
 rm -rf experiments/technical_documentation/acl_emnlp
 
 ## make the run directory
