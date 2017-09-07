@@ -21,6 +21,7 @@
 # please write an email to kyle@ims.uni-stuttgart.de
 
 ## change directory to top
+
 SCRIPT_LOC="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ZUBR_LOC="$( dirname $SCRIPT_LOC )"
 TECH_DOC=$ZUBR_LOC/experiments/technical_documentation
@@ -36,6 +37,10 @@ fi
 
 ## check if the data already exists, if so break
 
+if [ -d "$TECH_DOC/data" ] ; then
+    echo "DATA ALREADY EXISTS! Please remove (exiting...)"
+    exit 
+fi
 
 ## check to continue
 
@@ -49,11 +54,9 @@ esac
 ### GETTTING THE CODE DATA: the data is hosted here for both datasets:
 ### https://github.com/yakazimir/Code-Datasets
 
+echo "...DOWNLOADING THE DATA AND SCRIPTS...."
+wget https://github.com/yakazimir/Code-Datasets/archive/master.zip -O $TECH_DOC/data.zip
 
-if [ ! -f "$ZIP" ] ; then
-    echo "...DOWNLOADING THE DATA AND SCRIPTS...."
-    wget https://github.com/yakazimir/Code-Datasets/archive/master.zip -O $TECH_DOC/data.zip
-fi
 
 
 ## unzip the data
