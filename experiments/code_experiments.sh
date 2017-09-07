@@ -53,11 +53,8 @@ esac
 
 ### GETTTING THE CODE DATA: the data is hosted here for both datasets:
 ### https://github.com/yakazimir/Code-Datasets
-
 echo "...DOWNLOADING THE DATA AND SCRIPTS...."
 wget https://github.com/yakazimir/Code-Datasets/archive/master.zip -O $TECH_DOC/data.zip
-
-
 
 ## unzip the data
 ## unzip the zip inside the downloaded data
@@ -69,7 +66,7 @@ mv -f experiments/technical_documentation/Code-Datasets-master/*/ experiments/te
 ## unzip the acl_emnlp files
 echo "...UNZIPPING THE PIPELINE DATA..."
 unzip experiments/technical_documentation/Code-Datasets-master/acl_emnlp.zip -d $TECH_DOC 
- mv -f experiments/technical_documentation/acl_emnlp/* experiments/technical_documentation
+mv -f experiments/technical_documentation/acl_emnlp/* experiments/technical_documentation
 rm -rf experiments/technical_documentation/acl_emnlp
 
 ## make the run directory
