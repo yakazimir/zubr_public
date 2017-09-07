@@ -131,8 +131,8 @@ will take care of the rest.
 Building an API query engine
 -----------------
 
-Inside of Zubr is a tool called `FunctionAssistant` that allows you to
-build API query engines for source code (currently Python) collections. Below is an
+Inside of Zubr is a tool called `FunctionAssistant` (reported in the
+paper cited below) that allows you to build API query engines for source code (currently Python) collections. Below is an
 example run involving the Pyglet project. 
 
  ```
@@ -166,7 +166,18 @@ set of static files.
 
 Please also note that the extractor might miss a lot of documentation,
 and you might need to message the src directory structure to point it
-to all the data. 
+to all the data.
+
+If you use this tool, please cite the following:
+
+```
+@inproceedings{richardson-kuhn:2017:Demo,
+  author    = {Richardson, Kyle  and  Kuhn, Jonas},
+  title     = {Function {A}ssistant: {A} {T}ool for {NL} {Q}uerying of {API}s},
+  booktitle = {Proceedings of the EMNLP},
+  year      = {2017},
+  }
+```
 
 Reproducing Experiments 
 -----------------
