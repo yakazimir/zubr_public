@@ -3,7 +3,26 @@ Zubr: A Semantic Parsing Toolkit
 
 This is a slimmed down version of a cython/python toolkit for building
 semantic parsing models (a more general release is in the works, with
-additional features).
+additional features). The current realease includes the code needed to
+reproduce the following two paper on text2code semantic
+parsing/translation:
+
+```
+@inproceedings{richardson-kuhn:2017:Long,
+  author    = {Richardson, Kyle  and  Kuhn, Jonas},
+  title     = {Learning {S}emantic {C}orrespondences in {T}echnical {D}ocumentation},
+  booktitle = {Proceedings of the ACL},
+  year      = {2017},
+  url={http://aclweb.org/anthology/P/P17/P17-1148.pdf},
+  }
+
+@inproceedings{richardson-kuhn:2017:Demo,
+  author    = {Richardson, Kyle  and  Kuhn, Jonas},
+  title     = {Function {A}ssistant: {A} {T}ool for {NL} {Q}uerying of {API}s},
+  booktitle = {Proceedings of the EMNLP},
+  year      = {2017},
+  }
+```
 
 Please use at your own risk, this is academic code and not well tested
 (and in some cases quite hacky).
