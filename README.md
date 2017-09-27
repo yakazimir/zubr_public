@@ -184,7 +184,7 @@ much better to build a single dataset first, then run experiments on a
 set of static files. 
 
 Please also note that the extractor might miss a lot of documentation,
-and you might need to message the src directory structure to point it
+and you might need to massage the src directory structure to point it
 to all the data.
 
 If you use this tool, please cite the following:
