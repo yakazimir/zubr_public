@@ -8,4 +8,4 @@ file 'LICENSE', which is part of this source code package.
 author : Kyle Richardson
 """
 
-__version__ = "0.1"
+__version__ = "1.0"
