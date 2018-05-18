@@ -56,17 +56,22 @@ QuickStart.
 Graph Decoder and Neural Models
 --------------------------------
 
-As of version 2.0, we are including the code used for training various
+As of Version 2.0, we are including the code used for training various
 types of graph semantic parsing models, as reported in Richardson et
 al. NAACL 2018 (see references).
 
-Fulling installing these modules requires first installing Dynet
-(https://github.com/clab/dynet, version 2.0, a zipped version is
-included here) and
-FOMA (https://fomafst.github.io/, the binaries for Mac and Linux are
+Fulling installing these modules requires first installing Dynet (for
+building neural network models)
+(https://github.com/clab/dynet, version 2.0 (very important!), a zipped version is
+included here, following installation instructions there) and FOMA (https://fomafst.github.io/, the binaries for Mac and Linux are
 included in this distribution in bin/foma).
 
+Once you have installed Dynet (and its dependencies, e.g., Eigen and
+Boost) and Foma, be sure to set the environment variables ``$DYNET,
+$EIGEN, $BOOST``. With these variables set, the ``make`` command above
+should do the rest.
 
+See details in ``experiments/`` to see how to run these models. 
 
 Modes and Pipelines
 -----------------
@@ -217,7 +222,9 @@ Kyle Richardson (University of Stuttgart)
 License 
 ----------------
 
-Free software: GPL2 license. See LICENSE in this directory for more information. 
+Free software: GPL2 license. See LICENSE in this directory for more
+information. For the various dependencies (e.g., Dynet, Foma, ...)
+please observe the licenses provided there. 
 
 References
 ----------------
@@ -231,6 +238,7 @@ if you use the tool):
   title     = {Polyglot {S}emantic {P}arsing in {API}s},
   booktitle = {Proceedings of the NAACL},
   year      = {2018},
+  url        ={https://arxiv.org/abs/1803.06966},
   }
 
 @inproceedings{richardson-kuhn:2017:Long,
@@ -246,5 +254,6 @@ if you use the tool):
   title     = {Function {A}ssistant: {A} {T}ool for {NL} {Q}uerying of {API}s},
   booktitle = {Proceedings of the EMNLP},
   year      = {2017},
+  url={https://arxiv.org/abs/1706.00468},
   }
 ```
