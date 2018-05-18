@@ -60,7 +60,7 @@ As of Version 2.0, we are including the code used for training various
 types of graph semantic parsing models, as reported in Richardson et
 al. NAACL 2018 (see references).
 
-Fulling installing these modules requires first installing Dynet (for
+Installing these modules requires first installing Dynet (for
 building neural network models)
 (https://github.com/clab/dynet, version 2.0 (very important!), a zipped version is
 included here, following installation instructions there) and FOMA (https://fomafst.github.io/, the binaries for Mac and Linux are
@@ -70,6 +70,9 @@ Once you have installed Dynet (and its dependencies, e.g., Eigen and
 Boost) and Foma, be sure to set the environment variables ``$DYNET,
 $EIGEN, $BOOST``. With these variables set, the ``make`` command above
 should do the rest.
+
+We also have code for running ``executable'' semantic parsers (e.g.,
+in the GeoQuery domain), which will require having prolog installed (https://sicstus.sics.se/). 
 
 See details in ``experiments/`` to see how to run these models. 
 
