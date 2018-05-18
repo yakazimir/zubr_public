@@ -1,6 +1,6 @@
 
 from zubr.Extractor cimport Extractor
-from zubr.SymmetricAligner cimport M1SymmetricAligner
+#from zubr.SymmetricAligner cimport M1SymmetricAligner
 from zubr.Dataset cimport RankDataset,RankStorage,RankPair
 from zubr.Features cimport FeatureObj
 
