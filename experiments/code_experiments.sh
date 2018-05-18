@@ -66,8 +66,14 @@ mv -f experiments/technical_documentation/Code-Datasets-master/*/ experiments/te
 ## unzip the acl_emnlp files
 echo "...UNZIPPING THE PIPELINE DATA..."
 unzip experiments/technical_documentation/Code-Datasets-master/acl_emnlp_naacl.zip -d $TECH_DOC 
-mv -f experiments/technical_documentation/acl_emnlp/* experiments/technical_documentation
-rm -rf experiments/technical_documentation/acl_emnlp
+mv -f experiments/technical_documentation/acl_emnlp_naacl/* experiments/technical_documentation
+echo "...REMOVING THE AUXILIARY ACL_EMNLP_NAACL FILE..."
+rm -rf experiments/technical_documentation/acl_emnlp_naacl
+
+##unzip the semantic parsing data
+echo "...UNZIPPING THE SEMANTIC PARSING (SP) DATA..."
+unzip $TECH_DOC/other_data/SP $TECH_DOC/other_data
+
 
 ## make the run directory
 echo "...MAKING A RUN DIRECTORY"
