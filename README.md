@@ -1,28 +1,8 @@
-Zubr: A Semantic Parsing Toolkit 
+Zubr: A Semantic Parsing Toolkit (Version 2.0)
 ==================
 
-This is a slimmed down version of a cython/python toolkit for building
-semantic parsing models (a more general release is in the works, with
-additional features). The current realease includes the code needed to
-reproduce the following two papers on text2code semantic
-parsing/translation:
-
-```
-@inproceedings{richardson-kuhn:2017:Long,
-  author    = {Richardson, Kyle  and  Kuhn, Jonas},
-  title     = {Learning {S}emantic {C}orrespondences in {T}echnical {D}ocumentation},
-  booktitle = {Proceedings of the ACL},
-  year      = {2017},
-  url={http://aclweb.org/anthology/P/P17/P17-1148.pdf},
-  }
-
-@inproceedings{richardson-kuhn:2017:Demo,
-  author    = {Richardson, Kyle  and  Kuhn, Jonas},
-  title     = {Function {A}ssistant: {A} {T}ool for {NL} {Q}uerying of {API}s},
-  booktitle = {Proceedings of the EMNLP},
-  year      = {2017},
-  }
-```
+This is a cython/python toolkit for building semantic parsing
+models (with a focus on certain types of text-to-code translation models). See references for related work. 
 
 Please use at your own risk, this is academic code and not well tested
 (and in some cases quite hacky).
@@ -72,6 +52,21 @@ required modules/packages listed in requirements.txt)
 For running simple experiments, or reproducing previous
 experiments, we recommend building locally, as described in the
 QuickStart.
+
+Graph Decoder and Neural Models
+--------------------------------
+
+As of version 2.0, we are including the code used for training various
+types of graph semantic parsing models, as reported in Richardson et
+al. NAACL 2018 (see references).
+
+Fulling installing these modules requires first installing Dynet
+(https://github.com/clab/dynet, version 2.0, a zipped version is
+included here) and
+FOMA (https://fomafst.github.io/, the binaries for Mac and Linux are
+included in this distribution in bin/foma).
+
+
 
 Modes and Pipelines
 -----------------
@@ -150,8 +145,8 @@ will take care of the rest.
 Building an API query engine
 -----------------
 
-Inside of Zubr is a tool called `FunctionAssistant` (reported in the
-paper cited below) that allows you to build API query engines for source code (currently Python) collections. Below is an
+Inside of Zubr is a tool called `FunctionAssistant`  that allows you
+to build API query engines for source code (currently Python and Java) collections. Below is an
 example run involving the Pyglet project. 
 
  ```
@@ -223,3 +218,33 @@ License
 ----------------
 
 Free software: GPL2 license. See LICENSE in this directory for more information. 
+
+References
+----------------
+
+This work is based on the following work (please cite the EMNLP paper
+if you use the tool): 
+
+```
+@inproceedings{richardson-naacl,
+  author    = {Richardson, Kyle, Berant,Jonathan  and  Kuhn, Jonas},
+  title     = {Polyglot {S}emantic {P}arsing in {API}s},
+  booktitle = {Proceedings of the NAACL},
+  year      = {2018},
+  }
+
+@inproceedings{richardson-kuhn:2017:Long,
+  author    = {Richardson, Kyle  and  Kuhn, Jonas},
+  title     = {Learning {S}emantic {C}orrespondences in {T}echnical {D}ocumentation},
+  booktitle = {Proceedings of the ACL},
+  year      = {2017},
+  url={http://aclweb.org/anthology/P/P17/P17-1148.pdf},
+  }
+
+@inproceedings{richardson-kuhn:2017:Demo,
+  author    = {Richardson, Kyle  and  Kuhn, Jonas},
+  title     = {Function {A}ssistant: {A} {T}ool for {NL} {Q}uerying of {API}s},
+  booktitle = {Proceedings of the EMNLP},
+  year      = {2017},
+  }
+```
