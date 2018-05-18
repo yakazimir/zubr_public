@@ -17,16 +17,41 @@ import codecs
 import logging
 from collections import defaultdict
 import shutil
-import copy 
+import copy
+import subprocess
+## java extractor
+from zubr.doc_extractor import javalang
 
 __all__ = [
     "load_python",
     "prepare_docstring",
     "parse_python_doc",
     "py_extract",
+    "load_java",
+    "java_extract",
 ]
 
 util_logger = logging.getLogger('zubr.doc_extractor.util')
+
+## doc collection
+
+class DocCollection(object):
+    """Representing a python documentation collection"""
+    
+    def __init__(self,fdocs=[],cdocs=[],pdescr=[],class_info=defaultdict(set),lines={},fun_class=defaultdict(set)):
+        self.fdocs = fdocs
+        self.cdocs = cdocs
+        self.pdescr = pdescr
+        self.class_info = class_info
+        self.linenos = lines
+        self.fun_class = fun_class
+        self.edocs = []
+
+    @property
+    def logger(self):
+        ## instance logger
+        level = '.'.join([__name__,type(self).__name__])
+        return logging.getLogger(level)
 
 def __check_details(config):
     """Checks general properties of the configuration, i.e. that the project exists, 
@@ -78,6 +103,7 @@ def __extract_dir(directory,extension,ignore_test):
                 base_name = os.path.basename(full_path)
                 ## ignore testing 
                 if ignore_test and base_name in testing: continue
+                elif ignore_test and "Test" in base_name: continue
                 dirs.append(full_path)
             else:
                 ext = os.path.splitext(full_path)[1][1:].strip().lower()
@@ -107,6 +133,8 @@ def __copy_config(config,settings):
     settings.web_addr      = config.web_addr
     settings.online_addr   = config.online_addr
     settings.class_info    = config.class_info
+    settings.extract_extra = config.extract_extra
+    settings.proj = config.proj
 
 def load_python(config,settings):
     """Load the list of files for parsing a python project 
@@ -132,7 +160,63 @@ def load_python(config,settings):
     if not settings.out_dir:
         util_logger.warning('No output directory specified, will not print data!')
 
-    return candidate_files    
+    return candidate_files
+
+def __all_src_files(extension,project_dir,ignore_test=True):
+    """Find all source files that match a given extension
+
+    :param extension: the particular extension to match 
+    """
+    cmd = """find %s -name "*.%s" """ % (project_dir,extension)
+    out = subprocess.Popen(cmd,shell=True,stdin=subprocess.PIPE,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
+    # Get standard out and error
+    (stdout, stderr) = out.communicate()
+ 
+    # Save found files to list
+    filelist = filter(None,stdout.split('\n'))
+    util_logger.info('Found %d src files...' % len(filelist))
+
+    ## remove test files?
+    if ignore_test:
+        util_logger.info('Filtering out test files...')
+        filtered = []
+
+        ## iterate through 
+        for src_file in filelist:
+            file_name = os.path.basename(src_file).lower()
+            ## this is probably too simplistic 
+            if 'test' in file_name: continue
+            filtered.append(src_file)
+        util_logger.info('Filtering resulted in %d src files' % len(filtered))
+        
+        return filtered
+    return filelist 
+
+def load_java(config,settings):
+    """ """
+
+    ## make sure everything is correct
+    __check_details(config)
+
+    ## copy configuration settings
+    __copy_config(config,settings)
+
+    util_logger.info('Find the target files (might take some time)...')
+
+    ## extract the src files
+    candidate_files = __all_src_files("java",config.proj,config.ignore_test)
+
+    ## finally update the source location 
+    # settings.src_loc = config.src_loc
+
+    # ##
+    if not settings.out_dir:
+        util_logger.warning('No output directory specified, will not print data!')
+
+    util_logger.info('loaded java files...')
+    return candidate_files
 
 
 ## from the sphinx implementation
@@ -341,16 +425,9 @@ def prep_py_name(raw_name):
     new = new.lower().strip()
     return new.strip()
     
-class PyDocCollection(object):
+class PyDocCollection(DocCollection):
     """Representing a python documentation collection"""
     
-    def __init__(self,fdocs=[],cdocs=[],pdescr=[],class_info=defaultdict(set),lines={},fun_class=defaultdict(set)):
-        self.fdocs = fdocs
-        self.cdocs = cdocs
-        self.pdescr = pdescr
-        self.class_info = class_info
-        self.linenos = lines
-        self.fun_class = fun_class
 
     def compute_subclasses(self):
         """Find small categories of classes in the same part of tree and 
@@ -409,7 +486,6 @@ class PyDocCollection(object):
 
     def print_data(self,config):
         """Main method for printing out the data
-
 
         :param config: the main configuration, with information about output
         :rtype: None 
@@ -512,11 +588,13 @@ class PyDocCollection(object):
         sym_vocabulary = set()
         uri_map = {}
         class_seq = {}
+        originals = {}
 
         ## print the main data 
         with codecs.open(main,'w',encoding='utf-8') as main_data:
             with codecs.open(splits,'w') as split_info:
                 for (k,(module,cinfo,name,args,description)) in enumerate(self.fdocs):
+                    original = "%s\t%s\t%s\t%s" % (module,cinfo,name,' '.join(args))
                     final = "%s\t%s\t%s\t%s\t%s" % (module,cinfo,name,' '.join(args),description)
                     try: print >>main_data,final.decode('utf-8')
                     except UnicodeEncodeError: print >>main_data,final
@@ -555,6 +633,7 @@ class PyDocCollection(object):
                     tree_seq = [0 for i in module_rep.split()]+[1 for i in class_rep.split()]+\
                       [2 for i in name.split()]+[3 for i in args]
 
+
                     if cseq:
                         cs = [-1 for i in module_rep.split()]+[cidentifier for i in class_rep.split()]+\
                           [fidentifier for i in name.split()]+[-1 for i in args]
@@ -564,6 +643,7 @@ class PyDocCollection(object):
                     assert len(final.split()) == len(tree_seq),"Tree mismatch"
                     tree_map[final] = tree_seq
                     uri_map[final] = (html,description.capitalize()+".")
+                    originals[final] = original
 
                     if final not in unique_seq:
                         unique_seq.add(final)
@@ -579,6 +659,65 @@ class PyDocCollection(object):
                     for word in description.split():
                         words += 1
                         vocabulary.add(word)
+
+                #### EXTRA FUNCTIONS ADD
+                if config.extract_extra:
+                    for (module,cinfo,name,args,_) in self.edocs:
+
+                        ## extract class info (if available)  
+                        cseq = False 
+                        if cmap:
+                            cseq = True
+                            if cinfo in cmap:
+                                cidentifier = cmap[cinfo]
+                            else:
+                                cidentifier = -1
+                            if (name,cidentifier) in cmap:
+                                fidentifier = cmap[(name,cidentifier)]
+                            else:
+                                fidentifier = -1
+                        ## construct the class sequence
+                        ## get the adresses (if exist)
+                        address = self.linenos.get((module,cinfo,name),"www.github.com")
+                        html="""<tt style='background-color:#E8E8E8;'> %s <a href='%s' target="_blank">%s</a>(%s)</tt>""" %\
+                          ('.'.join([module,cinfo]),address,name,','.join(args))
+
+                        ## build final representation
+                        module_rep = ' '.join(module.split('.'))
+                        class_rep = ' '.join(cinfo.split('.'))
+                        if config.prepare_fun:
+                            class_rep = prep_py_name(class_rep)
+                            name = prep_py_name(name)
+
+                        final = "%s %s %s %s" % (module_rep,class_rep,name,' '.join(args))
+                        final = re.sub(r'\s+',' ',final).strip()
+                        tree_seq = [0 for i in module_rep.split()]+[1 for i in class_rep.split()]+\
+                          [2 for i in name.split()]+[3 for i in args]
+
+                        if cseq:
+                            cs = [-1 for i in module_rep.split()]+[cidentifier for i in class_rep.split()]+\
+                            [fidentifier for i in name.split()]+[-1 for i in args]
+                            class_seq[final] = cs
+                            assert len(cs) == len(final.split()),"class seq mismatch"
+
+                        assert len(final.split()) == len(tree_seq),"Tree mismatch"
+                        tree_map[final] = tree_seq
+                        uri_map[final] = (html,description.capitalize()+".")
+
+                        if final not in unique_seq:
+                            unique_seq.add(final)
+                            rank_list.append(final)
+
+                        ## putting training symbols into the pseudolex
+                        for symbol in final.split():
+                            sym_vocabulary.add(symbol)
+
+                        ## english vocabulary
+                        for word in description.split():
+                            words += 1
+                            vocabulary.add(word)
+                
+                
 
         ## print data information
         print >>data_info,"#WORDS: %d" % words
@@ -671,6 +810,8 @@ class PyDocCollection(object):
         ranks_uri = os.path.join(config.out_dir,"rank_list_uri.txt")
         rank_trees = os.path.join(config.out_dir,"rank_list.tree")
         rank_classes = os.path.join(config.out_dir,"rank_list_class.txt")
+        rank_orig = os.path.join(config.out_dir,"rank_list_orig.txt")
+        rank_o = codecs.open(rank_orig,'w',encoding='utf-8')
 
         
         with codecs.open(ranks,'w',encoding='utf-8') as my_ranks:
@@ -680,8 +821,10 @@ class PyDocCollection(object):
                         for item in rank_list:
                             try: 
                                 print >>my_ranks,item.decode('utf-8')
+                                print >>rank_o,originals[item.decode('utf-8')]
                             except UnicodeEncodeError:
                                 print >>my_ranks,item
+                                print >>rank_o,originals[item]
                             print >>my_trees,"%s\t4" % (' '.join([str(i) for i in tree_map[item]]))
                             
                             try: 
@@ -719,11 +862,593 @@ class PyDocCollection(object):
         if class_seq:
             shutil.copy(rank_classes,orig_crank)
         
+
+
+#############################################
+# JAVA DOCUMENTATION FUNCTIONS AND UTIL     #
+#############################################
+
+class JavaFunction(object):
+    """Representation of individual java function"""
+    
+    def __init__(self,package,classname,name,docs,args,returnv):
+        self.docs      = docs
+        self.package   = package
+        self.classname = classname
+        self.args = args
+        self.returnv = returnv
+        self.name = name
+
     @property
-    def logger(self):
-        ## instance logger
-        level = '.'.join([__name__,type(self).__name__])
-        return logging.getLogger(level)
+    def not_empty(self):
+        return self.docs.description
+    
+class JavaCollection(DocCollection):
+    """A collection of parallel function documentation pairs"""
+
+    def print_data(self,config):
+        """Main method for printing out the data
+
+        :param config: the main configuration, with information about output
+        :rtype: None 
+        """
+        main = os.path.join(config.out_dir,'main.txt')
+        splits = os.path.join(config.out_dir,'splits.txt')
+        random.seed(42)
+        data_len = len(self.fdocs)
+        ## create a random train/test/dev dataset
+        indices = range(data_len)
+        random.shuffle(indices)
+
+        ## uses a 70/30 (15/15) aplit
+        m = int(math.floor(data_len*0.7))
+        s = int(math.floor(data_len*0.15))
+        train_indices = range(0,m)
+        test_indices = range(m,m+s)
+        valid_indices = range(m+s,data_len)
+
+        ## the indices in each set 
+        actual_train = [indices[i] for i in train_indices]
+        actual_test  = [indices[i] for i in test_indices]
+        actual_valid = [indices[i] for i in valid_indices]
+
+        pseudo_lex = set()
+
+        ## different testing files
+        etrain = os.path.join(config.out_dir,'data_pseudo.e')
+        ftrain = os.path.join(config.out_dir,'data_pseudo.f')
+        etrain_bow = os.path.join(config.out_dir,'data_bow.e')
+        ftrain_bow = os.path.join(config.out_dir,'data_bow.f')
+        etest = os.path.join(config.out_dir,'data_test.e')
+        ftest = os.path.join(config.out_dir,'data_test.f')
+        evalid = os.path.join(config.out_dir,'data_val.e')
+        fvalid = os.path.join(config.out_dir,'data_val.f')
+
+        ## finalized representations by index
+        rep_map  = {}
+        tree_map = {}
+        unique_seq = set()
+
+        ## rank list information 
+        rank_list       = []
+        rank_list_trees = []
+
+        ## print the class descriptions
+        symbol_descriptions = defaultdict(set)
+        extract_pairs = set()
+        data_info_path = os.path.join(config.out_dir,"data_info.txt")
+        data_info = open(data_info_path,'w')
+        print >>data_info,"#PAIRS: %d" % len(self.fdocs)
+
+        ##make orig_data directory
+        os.mkdir(os.path.join(config.out_dir,"orig_data"))
+
+        ## class descriptions
+        for (libpath,oclass_name,description) in self.cdocs:
+            if not description: continue 
+            class_name = prep_py_name(oclass_name)
+            extract_pairs.add((class_name,description,"c"))
+            for symbol in class_name.split():
+                for word in description.split():
+                    ## remove stop words
+                    if word not in stops: 
+                        symbol_descriptions[symbol].add(word)
+
+        ## parameter descriptions
+
+        for (parameter,description) in self.pdescr:
+            extract_pairs.add((parameter,description,"p"))
+            for word in description.split():
+                if word not in stops:
+                    symbol_descriptions[symbol].add(word)
+
+        words      = 0
+        vocabulary = set()
+        sym_vocabulary = set()
+        uri_map = {}
+        class_seq = {}
+        orig_map = {}
+        train_params = set()
+        originals = {}
+        return_descriptions = {}
+
+        ## print the main data
+        with codecs.open(main,'w',encoding='utf-8') as main_data:
+            with codecs.open(splits,'w') as split_info:
+                for k,doc_instance in enumerate(self.fdocs):
+
+
+                    ## all parts of the representation 
+                    description = doc_instance.docs.description
+                    args      = doc_instance.args
+                    package   = doc_instance.package
+                    classname = doc_instance.classname
+                    name = doc_instance.name
+                    returnv   = doc_instance.returnv
+
+
+                    ### orig rep 
+                    final = "%s\t%s\t%s\t%s\t%s\t%s" % (package,classname,returnv,name,args,description)
+                    ofinal  = final
+                    ofinal = ofinal.strip()
+                    try: print >>main_data,final.decode('utf-8')
+                    except UnicodeEncodeError: print >>main_data,final
+
+                    ## uri
+                    address = self.linenos.get((classname,name),"www.github.com")
+                    html="""<tt style='background-color:#E8E8E8;'> %s <a href='%s' target="_blank">%s</a>(%s)</tt>""" %\
+                      ('.'.join([package,classname]),address,name,','.join(args.split()))
+
+
+                    original_rep = final
+                    ## print the split information
+                    if k in actual_train: print >>split_info,"train"
+                    elif k in actual_test: print >>split_info,"test"
+                    elif k in actual_valid: print >>split_info,"valid"
+                    ## preprocessed rep
+                    class_name = prep_py_name(classname)
+                    name = prep_py_name(name)
+                    module_rep = ' '.join(package.split('.'))
+                    ## args with types
+                    args = ' '.join([' '.join(a.split("=")) for a in args.split()])
+                    for arg in args.split(): train_params.add(arg)
+                    
+                    final = "%s %s %s %s %s" % (module_rep,class_name,returnv,name,args)
+                    final = re.sub(r'\s+',' ',final).strip().lower()
+                    tree_seq = [0 for i in module_rep.split()]+[1 for i in class_name.split()]+\
+                          [7 for i in returnv.split()]+[2 for i in name.split()]+[3 for i in args.split()]
+
+                    uri_map[final] = (html,description.capitalize()+".")
+
+                    assert len(tree_seq) == len(final.split())
+                    tree_map[final]     = tree_seq
+                    orig_map[final]     = original_rep
+                    originals[final] = ofinal
+
+                    ## add to representation map 
+                    rep_map[k] = final.strip()
+
+                    if final not in unique_seq:
+                        unique_seq.add(final)
+                        rank_list.append(final)
+
+                    ## return descriptions;
+                    if doc_instance.docs.return_doc:
+                        return_descriptions[final] = (description,doc_instance.docs.return_doc.strip())
+
+                    ## putting trainig symbols in pseudolex 
+                    for symbol in final.split():
+                        if k in actual_train:
+                            pseudo_lex.add(symbol)
+                        sym_vocabulary.add(symbol)
+
+                    ## english vocabulary
+                    for word in description.split():
+                        words += 1
+                        vocabulary.add(word)
+                    
+
+                ## by default extracts the extra stuff
+                if config.extra_extra: 
+                        
+                    for k2,extra_instance in enumerate(self.edocs):
+                        description = extra_instance.docs.description
+                        args      = extra_instance.args
+                        package   = extra_instance.package
+                        classname = extra_instance.classname
+                        name      = extra_instance.name
+
+
+                        address = self.linenos.get((classname,name),"www.github.com")
+                        html="""<tt style='background-color:#E8E8E8;'> %s <a href='%s' target="_blank">%s</a>(%s)</tt>""" %\
+                        ('.'.join([package,classname]),address,name,','.join(args.split()))
+
+                        class_name = prep_py_name(classname)
+                        name = prep_py_name(name)
+                        module_rep = ' '.join(package.split('.'))
+                        ## args with types
+                        args = ' '.join([' '.join(a.split("=")) for a in args.split()])
+                        final = "%s %s %s %s %s" % (module_rep,class_name,returnv,name,args)
+
+                        ## add
+                        uri_map[final] = (html,description.capitalize()+".")
+
+                        tree_seq = [0 for i in module_rep.split()]+[1 for i in class_name.split()]+\
+                          [7 for i in returnv.split()]+[2 for i in name.split()]+[3 for i in args.split()]
+
+
+                        assert len(tree_seq) == len(final.split())
+                        tree_map[final]     = tree_seq
+                        orig_map[final]     = original_rep
+
+                        if final not in unique_seq:
+                            unique_seq.add(final)
+                            rank_list.append(final)
+
+                        ## putting training symbols into the pseudolex
+                        for symbol in final.split():
+                            sym_vocabulary.add(symbol)
+
+                        
+                
+        ## print data information
+        print >>data_info,"#WORDS: %d" % words
+        print >>data_info,"#VOCAB: %d" % len(vocabulary)
+        print >>data_info,"#SYMBOLS: %d" % len(sym_vocabulary)
+
+        ## print the standard bow train data
+        train_tree = os.path.join(config.out_dir,"data.tree")
+        train_return_descriptions = os.path.join(config.out_dir,"train_returns.txt")
+        valid_return_descriptions = os.path.join(config.out_dir,"valid_returns.txt")
+        test_return_descriptions = os.path.join(config.out_dir,"test_returns.txt")
+
+        with codecs.open(etrain_bow,'w',encoding='utf-8') as et:
+            with codecs.open(ftrain_bow,'w',encoding='utf-8') as ft:
+                with codecs.open(train_tree,'w',encoding='utf-8') as my_trees:
+                    with codecs.open(train_return_descriptions,'w',encoding='utf-8') as returns: 
+                        for tindex in actual_train:
+                            data_pair = self.fdocs[tindex]
+                            english = data_pair.docs.description
+                            sem_rep = rep_map[tindex]
+
+                            ## return descriptions 
+                            if sem_rep in return_descriptions:
+                                description,return_value = return_descriptions[sem_rep]
+                                print >>returns,"%s\t%s\t%s" % (sem_rep,description,return_value)
+
+                            try: 
+                                print >>et,english.strip().decode('utf-8')
+                                print >>ft,sem_rep.strip().decode('utf-8')
+                            except UnicodeEncodeError:
+                                print >>et,english.strip()
+                                print >>ft,sem_rep.strip()
+                            print >>my_trees,"%s\t4" % " ".join([str(i) for i in tree_map[sem_rep.strip()]])
+
+
+        ## copy the bag of words
+        shutil.copy(etrain_bow,etrain)
+        shutil.copy(ftrain_bow,ftrain)
+
+        ## add the pseudolex entries
+        with codecs.open(etrain,'a',encoding='utf-8') as et:
+            with codecs.open(ftrain,'a',encoding='utf-8') as ft:
+                for item in pseudo_lex:
+                    for i in range(5):
+                        print >>et,item.strip().decode('utf-8')
+                        print >>ft,item.strip().decode('utf-8')
+
+        ## add extract parallel data
+        fin_etrain = os.path.join(config.out_dir,"data.e")
+        fin_ftrain = os.path.join(config.out_dir,"data.f")
+        shutil.copy(etrain,fin_etrain)
+        shutil.copy(ftrain,fin_ftrain)
+
+        ## print ``extra`` data, class/parameter descriptions
+        extra_pairs = os.path.join(config.out_dir,"extra_pairs.txt")
+        with codecs.open(fin_etrain,'a',encoding='utf-8') as et:
+            with codecs.open(fin_ftrain,'a',encoding='utf-8') as ft:
+                with codecs.open(extra_pairs,'w',encoding='utf-8') as extra: 
+                    for (sem,en,dtype) in extract_pairs:
+                        if dtype == 'p' and sem not in train_params: continue
+                        sem = sem.lower()
+                        try: 
+                            print >>et,en.strip().decode('utf-8')
+                            print >>ft,sem.strip().decode('utf-8')
+                        except UnicodeEncodeError:
+                            print >>et,en.strip()
+                            print >>ft,sem.strip()
+
+                        try: 
+                            print >>extra,("%s\t%s" % (sem,en)).decode('utf-8')
+                        except UnicodeEncodeError:
+                            print >>extra,("%s\t%s" % (sem,en))
+
+        ## print the test data
+        with codecs.open(etest,'w',encoding='utf-8') as etest:
+            with codecs.open(ftest,'w',encoding='utf-8') as ftest:
+                with codecs.open(test_return_descriptions,'w',encoding='utf-8') as returns: 
+                    for tindex in actual_test:
+                        data_pair = self.fdocs[tindex]
+                        #english = data_pair[-1]
+                        english = data_pair.docs.description
+                        sem_rep = rep_map[tindex]
+
+                        if sem_rep in return_descriptions:
+                            description,return_value = return_descriptions[sem_rep]
+                            print >>returns,"%s\t%s\t%s" % (sem_rep,description,return_value)
+                            
+                        try: 
+                            print >>etest,english.strip().decode('utf-8')
+                            print >>ftest,sem_rep.strip().decode('utf-8')
+                        except UnicodeEncodeError:
+                            print >>etest,english.strip()
+                            print >>ftest,sem_rep.strip()
+
+
+        ## print the validation data
+        with codecs.open(evalid,'w',encoding='utf-8') as evalid:
+            with codecs.open(fvalid,'w',encoding='utf-8') as fvalid:
+                with codecs.open(valid_return_descriptions,'w',encoding='utf-8') as returns: 
+                    for tindex in actual_valid:
+                        data_pair = self.fdocs[tindex]
+                        #english = data_pair[-1]
+                        english = data_pair.docs.description
+                        sem_rep = rep_map[tindex]
+
+                        if sem_rep in return_descriptions:
+                            description,return_value = return_descriptions[sem_rep]
+                            print >>returns,"%s\t%s\t%s" % (sem_rep,description,return_value)
+                        
+                        try: 
+                            print >>evalid,english.strip().decode('utf-8')
+                            print >>fvalid,sem_rep.strip().decode('utf-8')
+                        except UnicodeEncodeError:
+                            print >>evalid,english.strip()
+                            print >>fvalid,sem_rep.strip()
+
+
+        ## print the rank list
+        ## print the rank list
+        ranks = os.path.join(config.out_dir,"rank_list.txt")
+        ranks_uri = os.path.join(config.out_dir,"rank_list_uri.txt")
+        rank_trees = os.path.join(config.out_dir,"rank_list.tree")
+        rank_classes = os.path.join(config.out_dir,"rank_list_class.txt")
+        rank_orig = os.path.join(config.out_dir,"rank_list_orig.txt")
+        rank_o = codecs.open(rank_orig,'w',encoding='utf-8')
+        
+        with codecs.open(ranks,'w',encoding='utf-8') as my_ranks:
+            with codecs.open(rank_trees,'w',encoding='utf-8') as my_trees:
+                with codecs.open(ranks_uri,'w',encoding='utf-8') as uri:
+                    with codecs.open(rank_classes,'w',encoding='utf-8') as cl:
+                        for item in rank_list:
+                            try: 
+                                print >>my_ranks,item.decode('utf-8')
+                                print >>rank_o,originals[item.strip().decode('utf-8')]
+                            except UnicodeEncodeError:
+                                print >>my_ranks,item
+                                print >>rank_o,originals[item.strip()]
+
+                            print >>my_trees,"%s\t4" % (' '.join([str(i) for i in tree_map[item]]))
+                            
+                            try: 
+                                print >>uri,"%s\t%s" % (uri_map[item][0].decode('utf-8'),uri_map[item][1].decode('utf-8'))
+                            except UnicodeEncodeError:
+                                print >>uri,"%s\t%s" % (uri_map[item][0],uri_map[item][1])
+
+                            # if class_seq:
+                            #     print >>cl,"%s" % ' '.join([str(i) for i in class_seq[item]])
+
+        rank_o.close()
+
+def __parse_java_class(raw_string):
+    """Parse a java class description 
+
+    :param raw_string: the description to parse 
+    :rtype: string
+    """
+    if raw_string is None or not raw_string.strip():
+        return ""
+    descr = re.search(r'\s+\* (.+)',raw_string,re.MULTILINE)
+    if not descr: return ""
+    new_descr = descr.groups()[0]
+    new_descr = re.sub(r'\{\@.+ (.+)\}',r' \1 ',new_descr)
+    new_descr = re.sub(r'\{\@inheritDoc\}','',new_descr)
+    new_descr = re.split(r'\.($|\s+)',new_descr)[0].strip()
+    new_descr = re.sub(r'\s+',' ',new_descr)
+    return new_descr
+
+def __preprocess_spec(new):
+    if new.strip() == 'reinitialize': new = ''
+    if 'for testing only' in new: new = ''
+    if len(new.split()) <= 1: new = ''
+    if len(new.split()) > 50: new = ''
+    if 'not yet implemented' in new: new = ''
+    new = re.sub(r'see \<a href.+',' ',new)
+    new = re.sub(r'\s+',' ',new)
+    return new
+
+def __java_docs(raw_string):
+    """Parses a java documentation string 
+
+    :param raw_string: the raw string to parse 
+    :type raw_string: baseline or None
+    :rtype: str
+    """
+    if raw_string is None or not raw_string.strip():
+        return javalang.javadoc.DocBlock()
+
+    ## javalang parse object 
+    parsed_doc = javalang.javadoc.parse(raw_string)
+
+    ## some simple replacements specific to java descriptions
+    new = re.sub('e\.g\.','eg',parsed_doc.description)
+    new = re.sub('i\.e\.','ie',parsed_doc.description)
+
+    #new = re.sub(r'\{\@.+ (.+)\}',r' \1 ',parsed_doc.description)
+    new = re.sub(r'\{\@.+ (.+)\}',r' \1 ',new)
+    new = re.sub(r'\{\@inheritDoc\}','',new)
+    new = re.sub(r'\{\@link ','',new)
+    new = re.split(r'\.($|\s+)',new)
+    new = new[0]
+    new = re.sub(r'\s+',' ',new)
+    ## special cases for java
+    if re.search("^<code>",new): new = ''
+    elif re.search("^<pre>",new): new = ''
+    new = re.sub(r'\<\/?[a-zA-Z0-9]+\>',' ',new)
+    new = __preprocess(new)
+    ## extra processing
+    new = __preprocess_spec(new)
+    parsed_doc.description = new
+
+    ## return value
+    new_return = re.sub(r'\{\@.+ (.+)\}',r' \1 ',parsed_doc.return_doc) if\
+      parsed_doc.return_doc else ""
+    new_return = re.sub(r'\<type\>',' ',new_return)
+    new_return = re.split(r'\.($|\s+)',new_return)[0].strip()
+    new_return = re.sub(r'\<\/?[a-zA-Z0-9]+\>',' ',new_return)
+    new_return = re.sub(r'\s+',' ',new_return)
+    parsed_doc.return_doc = __preprocess(new_return)
+
+    ## parameter descriptions
+    new_descr = []
+    for (aname,arg_description) in parsed_doc.params:
+        newd = re.sub(r'\{\@.+ (.+)\}',r' \1 ',arg_description)
+        newd = re.split(r'\.($|\s+)',newd)[0].strip()
+        newd = re.sub(r'\s+',' ',newd)
+        if not newd: continue
+        new_descr.append((aname,newd))
+        
+    parsed_doc.params = new_descr
+    ## return updated
+
+    
+    return parsed_doc
+
+def __java_function(node,package,class_name):
+    """Parse a java function node 
+
+    :param node: the function node 
+    """
+    name        = node.name
+    parameters  = node.parameters
+    description = node.documentation
+    return_val  = node.return_type
+    rv = return_val.name if return_val else "void"
+
+    ## sort out the arguments 
+    if parameters: args =  ' '.join(["%s=%s" % (p.type.name,p.name) for p in parameters]) 
+    else: args = "void"
+
+    ## documentation
+    docs = __java_docs(description)
+    return JavaFunction(package,class_name,name,docs,args,rv)
+
+def java_extract(files,settings):
+    """Extract functions and class descriptions from a list of files 
+
+    :param files: the list of files to extract from 
+    :param settings: the global extraction settings 
+    """
+    ## counts
+    tfiles = sfiles = tfuns = dfuns = 0
+
+    ## the documentation collection 
+    collection = JavaCollection()
+    fdoc = collection.fdocs
+    edoc = collection.edocs
+    cdoc = collection.cdocs
+    pdoc = collection.pdescr
+    subclasses = collection.class_info
+    linenos = collection.linenos
+    function_classes = collection.fun_class
+
+    
+
+    
+    ## package/function
+    fun_num = set()
+
+    for file_path in files:
+        #print file_path
+        if '.#' in file_path: continue 
+
+        with codecs.open(file_path) as src_file:
+            filename = getattr(src_file,"name","<string>")
+            source = src_file.read()
+            tfiles += 1
+
+            try: 
+                tree = javalang.parse.parse(source)
+            except Exception,e:
+                util_logger.error('Parse error on %s, skipping..' % file_path)
+                #util_logger.error(e,exc_info=True)
+                continue
+
+            ## API location and name
+            try: 
+                package =  tree.package.name
+            except AttributeError:
+                continue
+
+            ## url
+            if settings.online_addr:
+                src_loc = file_path.replace(settings.proj,'').strip()
+                page_url =  settings.online_addr+src_loc
+                #print os.path.join(settings.online_addr,src_loc)
+            else:
+                page_url = "www.github.org"
+
+            ## iterate components
+            try: 
+                for _,node in tree:
+
+                    ## class
+                    if isinstance(node,javalang.tree.ClassDeclaration):
+
+                        class_name = node.name
+                        methods = node.methods
+
+                        ## class description
+                        cdescription = __preprocess(__parse_java_class(node.documentation))
+                        cdoc.append((package,class_name,cdescription))
+
+                        for method in methods:
+
+                            lnum,_ = method.position
+                            line_loc = "%s#L%d" % (page_url,lnum)
+                            if (file_path,lnum) in fun_num: pass 
+                            fun_num.add((file_path,lnum))
+
+                            ## 
+                            if not isinstance(method,javalang.tree.MethodDeclaration): continue
+                            fdecl = __java_function(method,package,class_name)
+                            if fdecl.not_empty: fdoc.append(fdecl)
+                            else: edoc.append(fdecl)
+
+                            linenos[(class_name,fdecl.name)] = line_loc
+                            
+                            ## argument stuff
+                            
+                            for (arg,description) in fdecl.docs.params:
+                                if not description.strip(): continue
+                                pdescription = __preprocess(description)
+                                pdoc.append((arg,pdescription))
+
+            except RuntimeError:
+                util_logger.error('encountered recursion error in %s' % package)
+                        
+    ## log some information
+    collection.logger.info('Parsed %d source files, extracted %d (/%d) functions with documentation' %\
+                               (len(files),len(fdoc),len(fdoc)+len(edoc)))
+    
+    ## extract datasets
+    if settings.print_data:
+        collection.print_data(settings) 
+
+#########################################
+# PYTHON EXTRACTION UTILS AND FUNCTIONS #
+#########################################
+                    
 
 def py_extract(files,settings):
     """Extract functions from a list of files
@@ -734,6 +1459,7 @@ def py_extract(files,settings):
     ## 
     collection = PyDocCollection()
     fdoc = collection.fdocs
+    edoc = collection.edocs
     cdoc = collection.cdocs
     pdoc = collection.pdescr
     subclasses = collection.class_info
@@ -832,6 +1558,10 @@ def py_extract(files,settings):
                                                             var_description = __preprocess(var_description)
                                                         pdoc.append((var_name,var_description))
 
+                                            ## keep track of undocumented functions
+                                            else:
+                                                edoc.append((module,name,function[0],function[1],""))
+
                                         except Exception:
                                             fname = getattr(attribute,'name')
                                             collection.logger.warning('Error parsing %s function in %s' % (fname,filename))
@@ -861,6 +1591,12 @@ def py_extract(files,settings):
                                             if settings.preproc: 
                                                 var_description = __preprocess(var_description)
                                             pdoc.append((var_name,var_description))
+
+                                ## back up the undocumented ones (might want to add to )
+                                else:
+                                    edoc.append((module,'',function[0],function[1],''))
+                                    linenos[(module,'',function[0])] =  line_loc
+                                
                                             
                             except Exception,e:
                                 fname = getattr(subnode,'name')
@@ -878,3 +1614,8 @@ def py_extract(files,settings):
     ## print the data
     if settings.print_data:
         collection.print_data(settings)
+
+
+
+
+        

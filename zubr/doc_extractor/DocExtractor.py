@@ -18,6 +18,15 @@ from zubr.doc_extractor.util import *
 class DocExtractorBase(object):
     """Base class for extracting documentation"""
 
+    def __init__(self,cfiles,config):
+        """Initializes a src document extractor instance 
+
+        :param cfiles: path the source files to be processed 
+        :param config: the extractor local configuration
+        """
+        self.files = cfiles
+        self.config = config    
+
     @classmethod
     def load_project(cls,config):
         """Load an example project 
@@ -38,7 +47,7 @@ class DocExtractorBase(object):
 
         :rtype: None 
         """
-        raise NotImplementedError 
+        raise NotImplementedError
 
     @property
     def logger(self):
@@ -49,16 +58,6 @@ class DocExtractorBase(object):
 class PyExtractor(DocExtractorBase):
     
     """Uses ast to extract documentation from functions, classes, and modules"""
-
-    def __init__(self,cfiles,config):
-        """Initialize a py extractor instance 
-
-
-        :param cfiles: paths to the files to be processed 
-        :param config: the extractor local configuration
-        """
-        self.files  = cfiles
-        self.config = config
 
     def extract(self):
         """Main method for extracting the target documentation.
@@ -79,10 +78,26 @@ class PyExtractor(DocExtractorBase):
         return cls(files,settings)
     
 class JavaExtractor(DocExtractorBase):
-    pass
+    """A Java documentation extractor """
+
+    @classmethod
+    def load_project(cls,config):
+        settings = ConfigAttrs()
+        files = load_java(config,settings)
+        return cls(files,settings)
+
+    def extract(self):
+        """Main method for extracting the target documentation.
+
+        :rtype: None
+        """
+        ## do the extraction, print if specified 
+        java_extract(self.files,self.config)
+    
 
 EXTRACTORS = {
-    "py" : PyExtractor,
+    "py"   : PyExtractor,
+    "java" : JavaExtractor
 }
 
     
@@ -141,7 +156,10 @@ def params():
          "Extract class information to use as features [default=False]","DocExtractor"),
         ("--online_addr","online_addr",'',"str",
          "Online source code address (if available) [default='']","DocExtractor"),
+        ("--extract_extra","extract_extra",False,"bool",
+         "Extract functions without documentation [default=False]","DocExtractor"),
     ]
+        
     return (groups,options)
 
 def argparser():
@@ -169,9 +187,10 @@ def main(argv):
         config = parser.parse_args(argv[1:])
         logging.basicConfig(level=logging.DEBUG)
 
+
     eclass = DocExtractor(config)
 
-    ## build dataset
+    # ## build dataset
     extractor = eclass.load_project(config)
     extractor.extract()
 
