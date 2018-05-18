@@ -74,7 +74,10 @@ should do the rest.
 We also have code for running ``executable'' semantic parsers (e.g.,
 in the GeoQuery domain), which will require having prolog installed (https://sicstus.sics.se/). 
 
-See details in ``experiments/`` to see how to run these models. 
+See details in ``experiments/`` to see how to run these models. To ensure that the installation was successful, do the following to
+run a test of the neural graph decoder:
+
+    ./run_zubr pipeline bin/neural_model.py --demo_data --dir examples/graph_test --override --model attention --backup_best
 
 Modes and Pipelines
 -----------------
