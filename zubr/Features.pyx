@@ -82,7 +82,7 @@ cdef class Vectorizer:
 
 cdef class FeatureObj(ZubrSerializable):
 
-    def __init__(self,beam,flist=[],gfeatures=None,templates={},maximum=-1):
+    def __init__(self,beam,flist=[],gfeatures=None,templates={},maximum=-1,baseline=-1):
         """ 
 
         :param num_f: number of features in each object 
@@ -96,6 +96,9 @@ cdef class FeatureObj(ZubrSerializable):
 
         if not gfeatures: self._gold_features = FeatureMap(templates,maximum)
         else: self._gold_features = gfeatures
+
+        ## information about baseline rank position
+        self.baseline = baseline
             
     def __getitem__(self,int i):
         return <FeatureMap>self._features[i]
@@ -160,7 +163,7 @@ cdef class FeatureObj(ZubrSerializable):
 
     ## doesnt work for some reason, avoid using 
     @classmethod
-    def load_from_file(cls,wdir,ftype,identifier,maximum):
+    def load_from_file(cls,wdir,ftype,identifier,maximum,baseline=-1):
         """Load a feature object from file
 
         :param wdir: the working directory 
@@ -171,7 +174,9 @@ cdef class FeatureObj(ZubrSerializable):
         if ftype == 'valid-select': ftype = 'valid'
         directory_path = os.path.join(wdir,ftype+"_features")
         file_path = os.path.join(directory_path,str(identifier))
-        return __load_features(file_path,ftype,maximum)
+        rep = __load_features(file_path,ftype,maximum)
+        rep.baseline = baseline
+        return rep
 
     @classmethod
     def load_from_binary(cls,wdir,ftype,identifier):

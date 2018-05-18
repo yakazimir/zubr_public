@@ -32,7 +32,7 @@ from zubr.Dataset cimport RankStorage
 from libc.stdlib cimport malloc, free
 from libc.math cimport log,isinf
 from cython cimport wraparound,boundscheck,cdivision
-#from zubr.NeuralModels cimport FeedForwardLM
+from zubr.NeuralModels cimport FeedForwardLM
 
 
 cdef class GraphDecoderBase(ZubrSerializable):
@@ -74,6 +74,23 @@ cdef class GraphDecoderBase(ZubrSerializable):
         """
         pass
 
+    def train(self,config):
+        """Train the underlying word model
+
+        :rtype: None 
+        """
+        raise NotImplementedError
+
+    ## c methods
+
+    cpdef int decode_data(self,object config) except -1:
+        """Decode a given dataset input
+
+        :param config: the configuration, which has pointer to data 
+        """
+        pass
+    
+
 cdef class WordModelDecoder(GraphDecoderBase):
 
     cdef KShortestPaths decode_input(self,int[:] decode_input,int k):
@@ -84,12 +101,12 @@ cdef class WordModelDecoder(GraphDecoderBase):
         """
         raise NotImplementedError
 
-    cpdef int decode_data(self,object config) except -1:
-        """Decode a given dataset input
+    # cpdef int decode_data(self,object config) except -1:
+    #     """Decode a given dataset input
 
-        :param config: the configuration, which has pointer to data 
-        """
-        pass
+    #     :param config: the configuration, which has pointer to data 
+    #     """
+    #     pass
 
     cpdef KBestTranslations translate(self,dinput,int k):
         """Translate a given input
@@ -259,7 +276,11 @@ cdef class WordGraphDecoder(WordModelDecoder):
                           0,k,
                           self.graph,edge_labels,
                           emap,rmap,gid,
-                          self.logger,config.dir)
+                          self.logger,
+                          config.eval_set,
+                          directory=config.dir)
+        
+                          #,hoffman=config.hoffman)
 
     cpdef KBestTranslations translate(self,dinput,int k):
         """Translate a given input
@@ -425,7 +446,7 @@ cdef class PolyglotWordDecoder(WordModelDecoder):
         blocks = language_blocks(config,lang_map)
         
         ## run the decoder
-        try: 
+        try:
             score_poly(model,
                         en,
                         enorig,
@@ -748,15 +769,15 @@ cdef class ExecutablePolyGraphDecoder(ExecutableGraphDecoder):
 ## neural models
 
 
-cdef class NeuralShortestPath(WordModelDecoder):
-    """These graph decoder models use neural network sequence models to assign weights 
-    in the general shortest path algorithm. 
-    """
-    pass
+# cdef class NeuralShortestPath(WordModelDecoder):
+#     """These graph decoder models use neural network sequence models to assign weights 
+#     in the general shortest path algorithm. 
+#     """
+#     pass
 
-cdef class PolyglotNeuralShortestPath(WordModelDecoder):
-    """This class implements polyglot neural models"""
-    pass 
+# cdef class PolyglotNeuralShortestPath(WordModelDecoder):
+#     """This class implements polyglot neural models"""
+#     pass 
 
 ## Concurrent model
 
@@ -833,7 +854,8 @@ cdef class ConcurrentWordModelDecoder(WordModelDecoder):
 
         try: 
             #storage = RankStorage.load_from_file(merge,flen,rsize)
-            storage = RankStorage.load_from_file(merge,flen,config.k)
+            #storage = RankStorage.load_from_file(merge,flen,config.k)
+            storage = RankStorage.load_from_file(merge,flen,config.k,rsize)
             storage.logger.info('Loaded new storage instance...')
             self.score_ranks(config.dir,config.k,storage,config=config)
 
@@ -1123,6 +1145,29 @@ cdef class SequencePath(Path):
             return ' '.join(trans)
     
 
+cdef class SimpleSequencePath(SequencePath):
+    """Simplified sequence path for the hoffman implementation """
+
+    def __init__(self,path,useq,size,eseq=np.empty(0,dtype=np.int32),score=1.0):
+        """Creates a sequence path instance 
+
+        :param path: the graph path sequence 
+        :param eseq: the encoded sequence for translation model 
+        :param useq: the unicode sequence 
+        :param score: the score of the path 
+        :param size: the size of the path sequence 
+        """
+        self.seq = path
+        self.eseq = eseq
+        self.score = score
+        self._translation = useq
+        self.size = size
+
+    property invalid:
+        def __get__(self):
+            """In these sequence paths, all resulting paths are valid"""
+            return False
+        
 cdef class SequenceBuffer:
 
     """Cython/c levle buffer for storing candidate paths. Repeated from Graph.pyx"""
@@ -1370,6 +1415,7 @@ cdef int pexecute_dataset(SymmetricWordModel model,
 
         if not gold_found:
             ## maybe log this?
+            #gold_pos[i] = (rsize - 1)
             gold_pos[i] = k
             ranks[i][k] = gid[i]
             gnoi += 1
@@ -1610,10 +1656,11 @@ cdef int score_poly(SymmetricWordModel model,
                 logger.warning('Unknown output: %s for input %d' % (utranslation,i))
 
         if not gold_found:
-            gold_pos[i] = k
-            ranks[i][k] = gid[i]
+            #gold_pos[i] = k
+            gold_pos[i] = (rsize-1)
+            #ranks[i][k] = gid[i]
             gnoi += 1
-
+            
     # # log time information 
     logger.info('decoded and scored %d sentences in %s seconds (%d not in beam)' %\
                     (size,str(time.time()-st),gnoi))
@@ -1636,7 +1683,8 @@ cdef void score_dataset(SymmetricWordModel model,#double[:,:] table,
                         dict rmap,
                         int[:] gid,
                         object logger,
-                        directory=None,
+                        etype,
+                        directory=None
                         ):
     """Decode a dataset and score 
 
@@ -1651,6 +1699,7 @@ cdef void score_dataset(SymmetricWordModel model,#double[:,:] table,
     :param rmap: the map from outputs to identifiers 
     :param gid: the gold identifiers 
     :param logger: the graph instance logger 
+    :param hoffman: whether to use the hoffman shit 
     """
     ## graph properties 
     cdef DirectedAdj adj = graph.adj
@@ -1690,6 +1739,8 @@ cdef void score_dataset(SymmetricWordModel model,#double[:,:] table,
         ## check if the gold item is found 
         gold_found = False
         esentence = np.unicode(dataset_orig[i])
+        
+        #if not hoffman: 
         paths = shortest_path(adj,edge_labels,
                                   esentence,
                                   gsize,
@@ -1700,6 +1751,18 @@ cdef void score_dataset(SymmetricWordModel model,#double[:,:] table,
                                   aligner,
                                   table,
                                   emap)
+        # else:
+        #     paths = hoffman_shortest_path(adj,edge_labels,
+        #                                 esentence,
+        #                                 gsize,
+        #                                 k+1,
+        #                                 start_node,
+        #                                 dataset[i],
+        #                                 #model,
+        #                                 aligner,
+        #                                 table,
+        #                                 emap)
+            
 
         ## go through the difference paths
         repeats = set()
@@ -1739,7 +1802,210 @@ cdef void score_dataset(SymmetricWordModel model,#double[:,:] table,
     if directory:
         #storage.compute_score(directory,'baseline')
         storage.compute_mono_score(directory,k,'baseline')
+        storage.backup(directory,name=etype)
 
+@boundscheck(False)
+@cdivision(True)
+cdef KBestTranslations hoffman_shortest_path(DirectedAdj adj,int[:] labels, # graph components
+                                      unicode uinput,
+                                      int size, ## the number of edges 
+                                      int k, ## the size of the
+                                      int starting_point,
+                                      np.ndarray[ndim=1,dtype=np.int32_t] english,
+                                      WordModel aligner,
+                                      double[:,:] table,
+                                      dict emap,
+                                      set blocks=set(), ## global blocks 
+                                      ):
+    """A modified shortest path algorithm for finding best paths in word graphs given input
+
+    :param adj: the adjacency list 
+    :param size: the number of nodes 
+    :param k: the number of desired paths 
+    :param english: the english or nl input
+    :param table: the probability table 
+    :param emap: the map for looking up edge unicode labels
+    """
+    ## graph components 
+    cdef int[:] edges   = adj.edges
+    cdef int[:,:] spans = adj.node_spans
+
+    ## aligner
+    cdef Alignment model_alignment
+
+    ## k best list 
+    cdef np.ndarray sortest_k_best,A = np.ndarray((k,),dtype=np.object)
+    cdef SequencePath top_candidate,previous,recent_path
+    cdef SimpleSequencePath spur_path,new_path
+    cdef SequenceBuffer B = SequenceBuffer()
+    cdef SequenceBuffer AS = SequenceBuffer()
+
+    ## the different sequences involved -
+    cdef np.ndarray[ndim=1,dtype=np.int32_t] prev_seq, spur_seq,total_path,root_path,other_path,prev_eseq
+    cdef np.ndarray[ndim=1,dtype=np.int32_t] total_eseq,spur_eseq
+    cdef np.ndarray prev_trans,spur_trans,total_trans
+
+    cdef dict spurs_seen = <dict>defaultdict(set)
+    ## equality lookup
+    cdef int[:] equal_path = np.zeros((k,),dtype=np.int32)
+    
+    ## input information
+    cdef isize = english.shape[0]
+
+    cdef int current_k,i,j,prev_size
+    cdef int root_len
+    cdef int root_outgoing,block_len
+    cdef double total_score,top_score,prev_num
+
+    ## block information
+    cdef set root_block,observed_spurs #,ignored_nodes,ignored_edges
+    cdef empty_scores = np.zeros((isize,),dtype='d')
+    ## cdef
+    cdef dict edge_priority = {}
+    cdef int[:] node_list
+    cdef int next_node
+    cdef double new_score
+    cdef set ignore_nodes,ignore_edges
+    cdef unicode o
+
+    ## elex
+    cdef dict flex = aligner.flex
+    
+    ### static k-shortest path information
+
+    previous = trans_edge_scores(0,edge_priority,empty_scores,0,edges,spans,labels,
+                                     english,isize,size,table,emap,True)
+    A[0] = previous
+    current_k = 1
+
+    ## model score for first-best 
+    model_alignment = aligner._align(previous.null_encoding,english)
+    top_score = -log(model_alignment.prob)
+
+    while True:
+        if current_k >= k: break
+        ## reset equal path
+        equal_path[:] = 0
+
+        ## initialize what to ignore
+        ignore_nodes = set()
+        ignore_edges = set()
+
+        ## add global blocks 
+        ignore_edges = ignore_edges.union(blocks)
+
+        ## previous size and actual sequence
+        prev_size  = previous.size
+        prev_seq   = previous.seq
+        prev_eseq  = previous.eseq
+        prev_trans = previous.translation
+        prev_num   = previous.score
+
+        ## push previous onto separate heap
+        AS.push(top_score, previous)
+
+        for i in range(1,prev_size):
+            root_path = prev_seq[:i]
+            root_len = root_path.shape[0]
+            root_block = set()
+
+            ## number of outgoing
+            root_outgoing = (spans[root_path[-1]][-1]+1)-spans[root_path[-1]][0]
+
+            ## sequence score at this node
+        
+            ## iterate through other k-best candidates
+            for j in range(0,current_k):
+
+                ## recent path from k-best list so far 
+                recent_path = A[j]
+                other_path = recent_path.seq
+
+                ## easy case, previous best path is the most recent 
+                if j == (current_k - 1):
+                    ignore_edges.add((other_path[i-1],other_path[i]))
+                    root_block.add(other_path[i])
+
+                ## starting point 
+                elif i == 1 and root_path[0] == other_path[0]:
+                    ignore_edges.add((other_path[i-1],other_path[i]))
+                    root_block.add(other_path[i])
+                    equal_path[j] = 1
+
+                ## previously equal, new part equal?
+                elif equal_path[j] == 1 and root_path[-1] == other_path[i-1]:
+                    ignore_edges.add((other_path[i-1],other_path[i]))
+                    root_block.add(other_path[i])
+
+                ## not equal anymore 
+                elif equal_path[j] == 1 and i > 1:
+                    equal_path[j] = 0
+
+            ignore_nodes.add(root_path[-1])
+            block_len = len(root_block)
+
+            ## check if all edges have been exhausted    
+            if block_len == root_outgoing: continue
+                
+            ## check if restriction have already been looked at (Lawler's rule)
+            observed_spurs = spurs_seen[tuple(root_path)]
+            if block_len <= len(observed_spurs): continue
+            observed_spurs.update(root_block)
+
+            ## find the next edge from this spur
+            node_list = edge_priority[root_path[-1]]
+
+            ## get the next best path from here
+            spur_path = next_best(root_path[-1],
+                                      node_list,
+                                      edge_priority,
+                                      labels,
+                                      size,
+                                      emap,
+                                      200,
+                                      ignore_edges,
+                                      len(node_list)
+                                      )
+
+            ## sput path and score 
+            spur_seq   = spur_path.seq
+
+            ## eseq and translation 
+            spur_eseq = spur_path.eseq
+            spur_trans = spur_path.translation
+            total_path = np.concatenate((root_path,spur_seq[1:]),axis=0)
+
+            ## concacenate encoded sequence            
+            total_trans = np.concatenate((prev_trans[:i-1],spur_trans))
+            total_eseq = np.array([flex.get(o,-1) for o in total_trans],dtype=np.int32)
+
+            ## new cnadidate path 
+            new_path = SimpleSequencePath(total_path,
+                                        total_trans,
+                                        total_path.shape[0],
+                                        total_eseq)
+            
+            ## get the correct probability 
+            model_alignment = aligner._align(new_path.null_encoding,english)
+            model_score = -log(model_alignment.prob)
+            new_path.score = model_score
+            B.push(model_score,new_path)
+
+        ## empty candidate list
+        if B.empty(): break
+
+        ## get the top candidate 
+        top_candidate = B.pop()
+        top_score = top_candidate.score
+        A[current_k] = top_candidate
+        current_k += 1
+        previous = top_candidate
+
+    ## after
+    sortest_k_best = AS.kbest(current_k)
+    return KBestTranslations(english,uinput,sortest_k_best,current_k) 
+
+        
 @boundscheck(False)
 @cdivision(True)
 cdef KBestTranslations shortest_path(DirectedAdj adj,int[:] labels, # graph components
@@ -1783,9 +2049,10 @@ cdef KBestTranslations shortest_path(DirectedAdj adj,int[:] labels, # graph comp
     ## the different sequences involved -
     cdef np.ndarray[ndim=1,dtype=np.int32_t]  prev_seq, spur_seq,total_path,root_path,other_path,prev_eseq
     cdef np.ndarray[ndim=1,dtype=np.int32_t]  total_eseq,spur_eseq
-    cdef np.ndarray[ndim=1,dtype=np.double_t] sput_score,root_score
+    cdef np.ndarray[ndim=1,dtype=np.double_t] root_score
     cdef np.ndarray[ndim=2,dtype=np.double_t] prev_score,spur_score,total_node_score
     cdef np.ndarray prev_trans,spur_trans,total_trans
+
 
     cdef dict spurs_seen = <dict>defaultdict(set)
     ## equality lookup
@@ -1804,9 +2071,6 @@ cdef KBestTranslations shortest_path(DirectedAdj adj,int[:] labels, # graph comp
     cdef empty_scores = np.zeros((isize,),dtype='d')
 
     ## first shortest path
-    # previous = best_sequence_path(0,empty_scores,0,edges,spans,labels,
-    #                                   english,isize,size,table,emap,True)
-
     previous = best_sequence_path(starting_point,empty_scores,0,edges,spans,labels,
                                       english,isize,size,table,emap,True)
     A[0] = previous
@@ -1821,9 +2085,9 @@ cdef KBestTranslations shortest_path(DirectedAdj adj,int[:] labels, # graph comp
         ## initialize what to ignore
         ignore_nodes = set()
         ignore_edges = set()
-
         ## add global blocks 
         ignore_edges = ignore_edges.union(blocks)
+        ignore_nodes = ignore_nodes.union(blocks)
 
         ## previous size and actual sequence
         prev_size  = previous.size
@@ -1897,8 +2161,8 @@ cdef KBestTranslations shortest_path(DirectedAdj adj,int[:] labels, # graph comp
                                             english,isize,size,table,
                                             emap,False,
                                             ignored_edges=ignore_edges,
-                                            ignored_nodes=ignore_nodes,
-                                            )
+                                            ignored_nodes=ignore_nodes)
+            
             ## sput path and score 
             spur_seq   = spur_path.seq
             spur_score = spur_path.node_scores
@@ -1945,6 +2209,292 @@ cdef KBestTranslations shortest_path(DirectedAdj adj,int[:] labels, # graph comp
 
 
 ## DAG best path
+
+@wraparound(False)
+@boundscheck(False)
+@cdivision(True)
+cdef SimpleSequencePath next_best(int source,
+                                int[:] node_list,
+                                dict edge_priority,
+                                #int next_edge,
+                                int[:] labels,
+                                int size,
+                                dict emap,
+                                int max_size,
+                                set ignore_edges,
+                                int source_len
+                                ):
+    """Computes the next best using blocks and the k-best edge information 
+
+    :param source: the source node 
+    :param next_edge: the next edge to pursue from source 
+    :param edge_priority: the sorted list of edges to use 
+    :param labels: the edge labels 
+    :param emap: the map for looking up edge unicode labels
+    :param max_size: the maximum size output string 
+    """
+    cdef int i,j,current_len,edge_len
+    cdef int *node_seq = <int *>malloc(max_size*sizeof(int))
+    cdef np.ndarray[ndim=1,dtype=np.int32_t] end_seq
+    cdef np.ndarray unicode_seq
+    cdef int next_edge,node
+
+    try:
+
+        with nogil: 
+            for i in range(max_size): node_seq[i] = 0
+            ## add first label
+            node_seq[0] = source
+            current_len = 1
+
+            ### find the next best edge 
+            for j in range(source_len):
+                node = node_list[j]
+                with gil:
+                    if (source,node) in ignore_edges: continue
+                next_edge = node
+                break
+
+            while True:
+                if next_edge == (size-1): break
+                node_seq[current_len] = next_edge
+                with gil: node_list = edge_priority[next_edge]
+                next_edge = node_list[0]
+                current_len += 1
+
+        # ## with the gil back on
+        end_seq = np.array([i for i in node_seq[:current_len]],dtype=np.int32)
+        unicode_seq = np.array([emap[(end_seq[i],end_seq[i+1])] for i in range(current_len-1)],dtype=np.object)
+        
+        return SimpleSequencePath(
+            end_seq,
+            unicode_seq,
+            current_len
+            )
+
+    finally:
+        free(node_seq) 
+        
+@wraparound(False)
+@boundscheck(False)
+@cdivision(True)
+cdef SequencePath trans_edge_scores(int source,
+                                    dict edge_scores,
+                                    double[:] start_score,int start_len,
+                                    int[:] edges,int[:,:] spans,
+                                    int[:] labels, ## graph edge labels 
+                                    int[:] einput,int esize, ## english input
+                                    int size,
+                                    double[:,:] table, ## translation parameters
+                                    dict emap,
+                                    bint first=False,
+                                    ):
+    """Computes the best path and information about the k-shortest positions
+
+    """
+    cdef int i,j,w,start,end,node
+    cdef double cdef_float_infp = float('+inf')
+
+    ## the resulting scores and sequences
+    cdef np.ndarray[ndim=1,dtype=np.int32_t] end_seq
+    cdef np.ndarray[ndim=2,dtype=np.double_t] fnode_scores
+    cdef np.ndarray[ndim=1,dtype=np.int32_t] encoded_sequence
+    cdef np.ndarray unicode_seq
+
+    ## score information during search
+    cdef double *d            = <double *>malloc(size*sizeof(double))
+    cdef int *p               = <int *>malloc(size*sizeof(int))
+    cdef double *node_scores  = <double *>malloc(size*sizeof(double))
+    cdef int *out_seq         = <int *>malloc(size*sizeof(int))
+
+    ## edge labels 
+    cdef int *best_labels     = <int *>malloc(size*sizeof(int))
+    cdef int *final_labels    = <int *>malloc(size*sizeof(int))
+
+    ## best sequence length at each node 
+    cdef double *nseq_len     = <double *>malloc(size*sizeof(double))
+    
+    ## sequence scores at each node 
+    cdef double *best_seq    = <double *>malloc(size*esize*sizeof(double))
+    cdef int *final_seq      = <int *>malloc(size*esize*sizeof(int))
+
+    ## sequence lengths
+    
+    ## node sequence scores
+    cdef int current,seq_len,xstart
+    cdef double seq_score,table_score
+    cdef int cword
+    cdef list xitems
+
+    ## divisor
+    cdef double es = float(esize)
+    cdef double ss = float(start_len)
+    cdef tuple n
+
+    try:
+        with nogil:
+
+            ## initialization
+            for i in range(source,size):
+                d[i]            = cdef_float_infp
+                p[i]            = -1
+                out_seq[i]      = -1
+                node_scores[i]  = cdef_float_infp
+                nseq_len[i]     = 0.0
+                best_labels[i]  = 0
+                final_seq[i]    = -1
+
+                ### add edge scores 
+                with gil: edge_scores[i] = []
+                ## initialize word position scores at each node
+                xstart = i*esize
+                for j in range(esize):
+                    best_seq[xstart+j] = 0.0
+
+            ## initialize with null score if starting
+            if first:
+
+                ## compute null probabilities
+                for j in range(esize):
+                    if einput[j] == -1: continue
+                    best_seq[(source*esize)+j] = table[0,einput[j]]
+                    #best_seq[j] = table[0,einput[j]]
+
+            ## source initiailization
+            else:
+
+                ## add starting scores
+                for j in range(esize):
+                    best_seq[(source*esize)+j] = start_score[j]
+
+                ## add starting length
+                if source == 0:
+                    nseq_len[source] = 0
+                else:
+                    nseq_len[source] = ss
+
+
+            ### go through now
+            ## go through from sink to end
+            for i in range(source,size-1):
+                start = spans[i][0]
+                end = spans[i][1]
+
+                ## compute node sequence score
+                if i > source and (p[i] == -1 or isinf(d[i])): continue
+                    
+                ## adjacencies
+                for j in range(start,end+1):
+                    node = edges[j]
+                    seq_score = 1.0
+
+                    ## score using the english side 
+                    for w in range(esize):
+                        
+                        ## unknown e word
+                        if einput[w] == -1: continue
+
+                        ## component edge encodoing
+                        cword = labels[j]
+                        if cword == -1:
+                            seq_score *=  best_seq[(i*esize)+w]
+                        else:
+                            table_score = table[cword,einput[w]]
+                            seq_score *= table_score + best_seq[(i*esize)+w]
+
+                    ## add the edge scores 
+                    with gil:
+                        #edge_scores[i][node] = -seq_score
+                        #heappush(edge_scores[i],(-seq_score,node))
+                        heappush(edge_scores[i],(-seq_score,node))
+
+                    ## a terminating node? normalize score by size to get real probability
+                    if node == size - 1:
+
+                        ## normalization (add 1 to account for null word)
+                        seq_score = seq_score/((nseq_len[i]+1)**es)
+
+                        ## shorter path to end?
+                        if d[node] > -seq_score:
+                            d[node] = -seq_score
+                            p[node] = i
+                            nseq_len[node] = (nseq_len[i] + 1.0)
+                            best_labels[node] = labels[j]
+
+                    ## non terminating node?
+                    elif (d[node] > -seq_score):
+
+                        ## shorter path?
+                        d[node] = -seq_score
+                        p[node] = i
+                        nseq_len[node] = (nseq_len[i] + 1.0)
+                        best_labels[node] = labels[j]
+                        
+                        ## update counts for computing sequence score
+                        for w in range(esize):
+                            if einput[w] == -1: continue
+                            ## component edge encodoing
+                            cword = labels[j]
+                            if cword == -1:
+                                best_seq[(node*esize)+w] = best_seq[(i*esize)+w]
+                            else:
+                                best_seq[(node*esize)+w] = table[cword,einput[w]]+best_seq[(i*esize)+w]
+
+                ## sort the edge scores
+                with gil:
+                  xitems = edge_scores[i]
+                  edge_scores[i] = np.array([n[1] for n in xitems],dtype=np.int32)
+                                                          
+            out_seq[0] = size-1
+            node_scores[0] = d[size-1]
+            current = size-1
+            seq_len = 1
+            weight = d[current]
+            final_seq[0] = best_labels[size-1]
+            
+            ## need to keep track of scores on each node
+            while True:
+                current = p[current]
+                out_seq[seq_len] = current
+                node_scores[seq_len] = d[current]
+                final_seq[seq_len]   = best_labels[current]
+                if current <= source: break
+                seq_len += 1
+
+         ## check if it is invalid
+        ## compute resulting sequences 
+        end_seq = np.array([i for i in out_seq[:seq_len+1]],dtype=np.int32)[::-1]
+
+        fnode_scores = np.array(
+            [np.array([best_seq[(i*esize)+j] for j in range(esize)],dtype='d') for i in end_seq],
+            dtype='d'
+        )
+
+        ## only go to :seq_len because last symbol is a special graph token *END*
+        encoded_sequence = np.array([i for i in final_seq[:seq_len]],dtype=np.int32)[::-1][:seq_len-1]
+        ## unicode sequence
+        unicode_seq =  np.array([emap[(end_seq[i],end_seq[i+1])] for i in range(seq_len-1)],dtype=np.object)
+
+        return SequencePath(
+            end_seq,
+            encoded_sequence,
+            unicode_seq,
+            fnode_scores,
+            weight,
+            seq_len+1
+        )
+
+    finally:
+        free(d)
+        free(p)
+        free(node_scores)
+        free(out_seq)
+        free(best_seq)
+        free(nseq_len)
+        free(best_labels)
+        free(final_labels)
+        free(final_seq)
+
 
 @wraparound(False)
 @boundscheck(False)
@@ -2077,7 +2627,6 @@ cdef SequencePath best_sequence_path(int source,
                     with gil:
                         if node in ignored_nodes: continue
                         if (i,node) in ignored_edges: continue
-                            
                     ## move this above to prune out stuff 
                     ## compute node sequence score
                     #if i > source and (p[i] == -1 or isinf(d[i])): continue
@@ -2202,7 +2751,7 @@ def params():
     
     options = [
         ("--k","k",100,"int",
-         "The size of shortest paths to generate  [default=True]","GraphDecoder"),
+         "The size of shortest paths to generate  [default=100]","GraphDecoder"),
         ("--decoder_type","decoder_type","wordgraph","str",
          "The type of graph decoder to use [default='wordgraph']","GraphDecoder"),
         ("--graph","graph","","str",
@@ -2220,7 +2769,11 @@ def params():
         ("--decode_data","decode_data",True,"bool",
             "Decode some data after loading [default=False]","ConcurrentDecoder"),
         ("--decode_all","decode_all",False,"bool",
-            "Decode all available data [=False]","ConcurrentDecoder"),
+            "Decode all available data [default=False]","ConcurrentDecoder"),
+        ("--hoffman","hoffman",False,"bool",
+            "Run the fater hoffmann k-shortest path [default=False]","ConcurrentDecoder"),
+        # ("--lang_","hoffman",False,"bool",
+        #     "Run the fater hoffmann k-shortest path [default=False]","ConcurrentDecoder"),            
     ]
 
     options += aligner_param
@@ -2288,12 +2841,16 @@ def main(argv):
                 ## decode all data (all = training and development)
                 if config.decode_all:
                     try:
+
+                        oeval_set = config.eval_set
                         ## rank files 
                         ext = os.path.join(config.dir,"ranks.txt")
                         tr  = os.path.join(config.dir,"train_ranks.txt")
                         vr  = os.path.join(config.dir,"valid_ranks.txt")
+                        ter  = os.path.join(config.dir,"valid_ranks.txt")                        
                         rr = os.path.join(config.dir,"rank_results.txt")
                         train_results = os.path.join(config.dir,"rank_results_train.txt")
+                        #train_results = os.path.join(config.dir,"rank_results_test.txt")
 
                         ## first training data 
                         config.eval_set = 'train'
@@ -2307,12 +2864,22 @@ def main(argv):
                         except: pass
 
                         ## second validation data
+                        #config.eval_set = 'valid' if oeval_set == 'valid' else 'test'
                         config.eval_set = 'valid'
                         decoder.decode_data(config)
                         ## replace ranks
                         shutil.copy(ext,vr)
                         config.valid_ranks = vr
-                        
+
+
+                        ## finally the testing data
+                        if oeval_set == 'test':
+                            config.eval_set = 'test'
+                            decoder.decode_data(config)
+                            
+                            ## replace ranks
+                            shutil.copy(ext,ter)
+
                     except Exception,e:
                         decoder.logger.error(e,exc_info=True)
 

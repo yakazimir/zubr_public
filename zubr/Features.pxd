@@ -27,6 +27,7 @@ cdef class TemplateManager(dict):
 cdef class FeatureObj(ZubrSerializable):
     cdef list _features
     cdef public int beam
+    cdef public int baseline
     cdef FeatureMap _gold_features 
     cdef Vectorizer vectorize_item(self,int i)
     cdef Vectorizer vectorize_gold(self)

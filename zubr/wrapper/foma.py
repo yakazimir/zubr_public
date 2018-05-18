@@ -245,9 +245,7 @@ def __make_sort_script(config):
 
     config.script_path = spath
     FomaWrapper.run_script(config)
-
     ## remove *END* from file
-    
             
 def sentence_network(config):
     """Called when building a sentence network 

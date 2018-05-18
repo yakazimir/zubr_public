@@ -205,9 +205,17 @@ cdef class GraphRankExtractor(GraphExtractorBase):
         :param identifier: the example identifier
         """
         cdef object config = self._config
+        cdef StorageComponents storage = self.storage
+        cdef RankStorage ranks = storage.trainranks
+        cdef int baseline = -1
+
+        if etype == "train":
+            baseline = ranks.gold_position(identifier)
         
         return FeatureObj.load_from_file(config.dir,etype,identifier,
-                                             config.num_features)
+                                             config.num_features,
+                                             baseline=baseline,
+                                             )
 
     cdef RankComparison rank_init(self,str etype):
         """Returns a rank comparison instance for evaluation
@@ -276,7 +284,7 @@ cdef class GraphRankExtractor(GraphExtractorBase):
         cdef int gold_pos = -1, gold_item = -1
 
         ## add the offset
-        identifier = identifier + offset
+        identifier = identifier + offset 
 
         ## find the correct ranks 
         if etype == 'train':
@@ -284,7 +292,7 @@ cdef class GraphRankExtractor(GraphExtractorBase):
             rank_items = ranks.find_ranks(identifier,etype,beam)
             rank_size = rank_items.shape[0]
             gold_pos = ranks.gold_position(identifier)
-            
+
         elif etype == 'valid':
             ranks = storage.validranks
             rank_items = ranks.find_ranks(identifier,etype,beam)
@@ -309,6 +317,7 @@ cdef class GraphRankExtractor(GraphExtractorBase):
         #############################
         ### GOLD EXTRACTION (for training)
         
+        
         if gold_pos > -1:
             gold_item = ranks.gold_value(identifier)
             try: 
@@ -322,6 +331,10 @@ cdef class GraphRankExtractor(GraphExtractorBase):
                                    knowledge,
                                    rank_info,
                                    <FeatureMap>features.gold_features)
+
+                ## make what the baseline thinks
+                features.baseline = gold_pos
+                
             except Exception,e:
                 self.logger.error(e,exc_info=True)
                 sys.exit('Feature Extraction error encountered on gold, check log')

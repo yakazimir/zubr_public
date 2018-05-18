@@ -10,7 +10,7 @@ author : Kyle Richardson
 Implementation of a symmetric aligner using aligners from Aligner.pyx 
 """
 
-#from zubr.Aligner cimport Model1,Model2,Alignment
+from zubr.Aligner cimport Model1,Model2,Alignment
 from zubr.Alignment cimport WordModel
 from zubr.ZubrClass cimport ZubrSerializable
 import numpy as np

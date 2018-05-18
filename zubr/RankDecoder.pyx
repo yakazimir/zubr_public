@@ -11,7 +11,7 @@ author : Kyle Richardson
 from cython cimport boundscheck,wraparound,cdivision
 from zubr.Alignment cimport WordModel,TreeModel
 from zubr.Alignment import Aligner
-#from zubr.NeuralModels import NeuralLearner
+from zubr.NeuralModels import NeuralLearner
 from zubr.ZubrClass cimport ZubrSerializable
 from zubr.Dataset cimport RankStorage
 import os
@@ -29,7 +29,7 @@ from zubr.util.polyglot_util import swap_results
 DECODERS = {
     "single"   : MonoRankDecoder,
     "polyglot" : PolyglotRankDecoder,
-    #"neural"   : NeuralSingleDecoder,
+    "neural"   : NeuralSingleDecoder,
 }
 
 cdef class RankerBase(ZubrSerializable):
@@ -170,6 +170,66 @@ cdef class PolyglotRankDecoder(RankDecoder):
             swap_results(config.dir,name)
 
 
+## neural rank decoders
+
+cdef class NeuralRankDecoder(RankerBase):
+    """Classes for doing rank decoding with neural networks, as opposed to word based translation models
+    """
+
+    def __init__(self,neural_model):
+        """Create a neural reranker instance 
+
+        :param neural_model: the underlying neural network model 
+        """
+        self.model = neural_model
+
+    @classmethod
+    def load_model(cls,config):
+        """Create a decoder instance with aligner
+
+        :param config: the main configuration 
+        :type config: zubr.util.config.ConfigAttrs
+        :rtype: RankDecoder
+        """
+        mtype = NeuralLearner(config.nmodel)
+        
+        if config.from_model:
+            config.dir = os.path.dirname(config.from_model)
+            return cls(mtype.load_backup(config))
+        mtype = NeuralLearner(config.nmodel)
+        return cls(mtype.from_config(config))
+
+    def train(self,config=None):
+        """Train the underlying neural model 
+
+        :param config: the main configuration 
+        :type config: zubr.util.config.ConfigAttrs
+        :rtype: None
+        """
+        self.logger.info('Training the underlying neural model...')
+        self.model.train(config)
+
+cdef class NeuralSingleDecoder(NeuralRankDecoder):
+    """A neural network based neural rank decoder"""
+
+    cpdef int rank(self,object config) except -1:
+        """Rank decode for a multiple datasets/output languages
+
+        :param config: the main configuration 
+        :type config: zubr.util.config.ConfigAttrs
+        """
+        cdef FeedForwardTranslationLM model = <FeedForwardTranslationLM>self.model
+        cdef np.ndarray en,rl,freq,order
+        cdef dict flex = model.flex
+        cdef dict elex = model.elex
+
+        self.logger.info('Evaluating to %s set' % config.eval_set)
+        rl,inp,order,freq,enorig = get_rdata(config,flex,elex,ttype=config.eval_set)
+        en,gid = inp
+
+        ## the main method 
+        _decode_neural(rl,en,model,gid,config.dir,self.logger)
+
 ## factory
 
 def Decoder(config):
@@ -215,6 +275,52 @@ cdef int _decode_single(np.ndarray rl,np.ndarray en, ## the rank and english dat
     except Exception, e: logger.error(e,exc_info=True)
 
 
+cdef int _decode_neural(np.ndarray rl,
+                            np.ndarray en,
+                            FeedForwardTranslationLM model,
+                            np.ndarray[dtype=np.int32_t,ndim=1] gid,
+                            str directory,
+                            object logger
+                            ):
+    """Main decode procedure for the neural model 
+
+    :param rl: the underlying rank list 
+    :param en: the english dataset 
+    :param model: the neural network model 
+    :param gid: the gold ids for each item in the english dataset 
+    :param directory: the underlying directory
+    :param logger: logger instance
+    """
+    cdef int size = en.shape[0]
+    cdef int rlen = rl.shape[0]
+    cdef RankStorage storage = RankStorage.load_empty(size,rlen)
+    cdef int[:,:] ranks = storage.ranks
+    cdef int[:] gold_pos = storage.gold_pos
+    cdef int i,j
+
+    ## start the time counter 
+    stime = time.time()
+
+    for i in range(size):
+        if ((i+1) % 10) == 0: logger.info('parsing number: %d' % i)
+
+        try: 
+            model._rank(en[i],rl,ranks[i],gid[i])
+        except Exception,e:
+            logger.error(e,exc_info=True)
+            continue
+
+        ## update the scoring item 
+        for j in range(rlen):
+            if ranks[i][j] == gid[i]:
+                gold_pos[i] = j
+
+    ## log results and report in score
+    logger.info('Ranked items in %f seconds, now scoring' % (time.time()-stime))
+    try: storage.compute_score(directory,'baseline')
+    except Exception,e: logger.error(e,exc_info=True)
+
+        
 ## CLI INFORMATION
 
 def argparser():

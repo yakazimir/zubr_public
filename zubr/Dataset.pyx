@@ -400,7 +400,7 @@ cdef class RankStorage(ZubrSerializable):
             return oranks.shape[1]-1
         
     @classmethod
-    def load_from_file(cls,file_path,dsize,rsize):
+    def load_from_file(cls,file_path,dsize,rsize,rlist):
         """Create a rank storage from file
 
         :param file_path: the path to the file 
@@ -433,11 +433,13 @@ cdef class RankStorage(ZubrSerializable):
 
                 ## put in rsize as gold position if not in beam
                 if not contains_gold:
-                    gold_pos[number] = (rsize - 1)
-                    ranks[number][rsize-1] = gold_id
-                    
+                    #gold_pos[number] = (rsize - 1)
+                    gold_pos[number] = (rlist-1)
+                    #ranks[number][rsize-1] = gold_id
+
         instance = cls(ranks[:total_number],gold_pos[:total_number])
-        instance.logger.info('Loaded a rank storage item, with size (%d,%d)' % (total_number,rsize))
+        #instance.logger.info('Loaded a rank storage item, with size (%d,%d)' % (total_number,rsize))
+        instance.logger.info('Loaded a rank storage item, with size (%d,%d)' % (total_number,rlist))
         return instance
     
     ## backup protocol 

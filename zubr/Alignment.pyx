@@ -60,6 +60,7 @@ cdef class AlignerBase(ZubrSerializable):
         """
         raise NotImplementedError
 
+
 cdef class SequenceAligner(AlignerBase):
     """Sequence to sequence aligners base class"""
 
@@ -72,6 +73,9 @@ cdef class SequenceAligner(AlignerBase):
         :maxiter2: the maximum models for main model 
         """
         raise NotImplementedError
+
+    def align(self,f,e):
+        return self._align(f,e)
 
     cdef Alignment _align(self,int[:] f,int[:] e):
         """Align an intput output pair 
@@ -256,8 +260,19 @@ cdef class WordModel(SequenceAligner):
         
         :returns: a typed memory view of the word parameters 
         """
-        raise NotImplementedError    
+        raise NotImplementedError
 
+    cdef np.ndarray model_table_np(self):
+        """This returns word translation datastructure 
+        
+        motivation : for many downstream uses of these translation 
+        models (e.g., graph decoder), it is useful and efficient 
+        to have a (non-sparse) 2d array representation of word 
+        translation probabilities that supports fast lookup. 
+        
+        :returns: a typed memory view of the word parameters 
+        """
+        raise NotImplementedError
 
 cdef class NonDistortionModel(WordModel):
     """Defines a sequence alignment model without distortion parameters"""
@@ -453,6 +468,7 @@ cdef class WordDistortionModel(WordModel):
         self.config.print_to_yaml(mdir)
         self.logger.info('Backed up in %s seconds' % (time.time()-stime))
 
+
     @classmethod 
     def load_backup(cls,config,tname='ftoe'):
         """Load a numpy based backup for non distortion model
@@ -508,6 +524,20 @@ cdef class WordDistortionModel(WordModel):
         """
         cdef double[:,:] table = self.table
         return table
+
+    cdef np.ndarray model_table_np(self):
+        """This returns word translation datastructure 
+        
+        motivation : for many downstream uses of these translation 
+        models (e.g., graph decoder), it is useful and efficient 
+        to have a (non-sparse) 2d array representation of word 
+        translation probabilities that supports fast lookup. 
+        
+        :returns: a typed memory view of the word parameters 
+        """
+        cdef np.ndarray[ndim=2,dtype=np.double_t] table = self.table
+        return table
+
     
 cdef class TreeDistortionModel(TreeModel):
     """Alignment model with distortion parameters defined on target-side tree positions"""
@@ -669,7 +699,36 @@ cdef class SparseWordModel(WordModel):
                 evalue = dim2[k]
                 table[i,evalue] = sparse_table[k]
 
+        return table
+
+    @boundscheck(False)
+    @wraparound(False)
+    @cdivision(True)
+    cdef np.ndarray model_table_np(self):
+        """Makes a non-sparse representation of word pair parameters. 
+        
+        motivation : for many downstream uses of these translation 
+        models (e.g., graph decoder), it is useful and efficient 
+        to have a (non-sparse) 2d array representation of word 
+        translation probabilities that supports fast lookup. 
+        
+        :returns: a typed memory view of the word parameters 
+        """
+        cdef double[:] sparse_table = self.table
+        cdef Sparse2dModel lookup = self.sparse2d
+        cdef int[:,:] spans = lookup.spans
+        cdef int[:] dim2 = lookup.dim2
+        cdef int elen = self.elen, flen = self.flen
+        cdef np.ndarray[ndim=2,dtype=np.double_t] table = np.zeros((flen,elen),dtype='d')
+        cdef int i,k,evalue
+
+        for i in range(flen):
+            for k in range(spans[i][0],spans[i][1]):
+                evalue = dim2[k]
+                table[i,evalue] = sparse_table[k]
+
         return table 
+
     
 cdef class SparseNonDistortionModel(SparseWordModel):
 

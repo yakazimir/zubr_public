@@ -22,12 +22,12 @@ cdef extern from "math.h":
     bint isinf(double)
     
 cdef class GraphDecoderBase(ZubrSerializable):
-    pass 
+    cpdef int decode_data(self,object config) except -1
 
 cdef class WordModelDecoder(GraphDecoderBase):
     cdef SymmetricWordModel model
     cdef KShortestPaths decode_input(self,int[:] decode_input,int k)
-    cpdef int decode_data(self,object config) except -1
+    #cpdef int decode_data(self,object config) except -1
     cdef WordGraph graph
     cdef np.ndarray edge_labels
     cdef dict edge_map
@@ -78,6 +78,9 @@ cdef class SequencePath(Path):
     cdef np.ndarray eseq
     cdef np.ndarray _translation 
 
+cdef class SimpleSequencePath(SequencePath):
+    pass 
+    
 cdef class SequenceBuffer:
     cdef void push(self,double cost, SequencePath path)
     cdef SequencePath pop(self)

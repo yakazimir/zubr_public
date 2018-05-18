@@ -508,7 +508,7 @@ cdef int _extract_hiero_phrases(SymmetricWordModel model,object config) except -
         flen = f[i].shape[0]
         elen = e[i].shape[0]
         
-        assert ftreepos.shape[0] == flen, 'wrong length'
+        assert ftreepos.shape[0] == flen, 'wrong length at %d, tree=%d, flen=%d' % (i,ftreepos.shape[0],flen)
         echart = [[u'' for _ in range(elen+1)] for _ in range(elen)]
         fchart = [[u'' for _ in range(flen+1)] for _ in range(flen)]
         lookup_table = {}

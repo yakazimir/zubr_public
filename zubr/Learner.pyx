@@ -1254,7 +1254,7 @@ cdef class ModelProbs:
         ## averaged
         self.normalized = False
         
-    cpdef void normalize(self,int it=-1,object wdir=None, dict lang_map={}):
+    cpdef void  normalize(self,int it=-1,object wdir=None, dict lang_map={}):
         """Normalizes the counts to probabilities, using softmax normalization with 
         a heuristically set temperature parameter of 0.1
 
@@ -1270,14 +1270,15 @@ cdef class ModelProbs:
         cdef double denominator,loc_score
 
         ## global normalization
+        
         if self.global_counts > 0.0:
-            global_ranks[0] = global_ranks[0]/self.global_counts
+            global_ranks[0] = np.exp((global_ranks[0]/self.global_counts)/0.01)
             denominator = 0.0+global_ranks[0]
 
             ## find denominator
             for lang in range(num_langs):
                 print_type = 'w'
-                global_ranks[lang+1] = global_ranks[lang+1]/self.global_counts
+                global_ranks[lang+1] = np.exp((global_ranks[lang+1]/self.global_counts)/0.01)
                 denominator  += global_ranks[lang+1]
 
             ## normalize
@@ -1300,14 +1301,15 @@ cdef class ModelProbs:
         for lang in range(num_langs):
             print_type = 'a'
             lang_count = lang_counts[lang]
+            
             if lang_count != 0.0: 
-                loc_score = global_langs[lang]/lang_count
+                loc_score = np.exp((global_langs[lang]/lang_count)/0.01)
                 denominator = 0.0 + loc_score
                 global_langs[lang] = loc_score
 
                 ## calculate denominator
                 for other_lang in range(num_langs):
-                    loc_score = lang_ranks[lang][other_lang]/lang_count
+                    loc_score = np.exp((lang_ranks[lang][other_lang]/lang_count)/0.01)
                     denominator += loc_score
                     lang_ranks[lang][other_lang] = loc_score 
 
@@ -1485,9 +1487,14 @@ cdef class WeightedSGDPolyglot(LinearPolyglot):
         scores = gen_scores.probs
         reranked_loc = gen_scores.first_rank
         non_zeroed = gen_scores.averaged_nonzeroed
-        reciprocal = ((1.0/(reranked_loc+1.0))*non_zeroed)
-        global_ranks[0] += reciprocal
-        global_langs[model_id] += reciprocal
+        #reciprocal = ((1.0/(reranked_loc+1.0))*non_zeroed)
+        reciprocal = 1.0/(reranked_loc+1.0)
+
+        if reranked_loc < features.baseline or reranked_loc == 0.0: 
+            global_ranks[0] += reciprocal
+            global_langs[model_id] += reciprocal
+
+        #print features.baseline
 
         for i in range(num_langs):
 
@@ -1508,14 +1515,15 @@ cdef class WeightedSGDPolyglot(LinearPolyglot):
             #reciprocal = 1.0/((reranked_loc+1.0)*non_zeroed)
 
             ## check if it better than the baseline model, only add if so
+            if reranked_loc < features.baseline or reranked_loc == 0.0:
                                     
+                #reciprocal = ((1.0/(reranked_loc+1.0))*non_zeroed)
+                reciprocal = (1.0/(reranked_loc+1.0))
+                ## add rank score for the overall dataset
+                global_ranks[i+1] += reciprocal
 
-            reciprocal = ((1.0/(reranked_loc+1.0))*non_zeroed)
-            ## add rank score for the overall dataset
-            global_ranks[i+1] += reciprocal
-
-            ## add rank score for the specific language under consideration 
-            lang_ranks[model_id][i] += reciprocal
+                ## add rank score for the specific language under consideration 
+                lang_ranks[model_id][i] += reciprocal
 
         try: 
             ## do update on the global model

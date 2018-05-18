@@ -39,7 +39,8 @@ cdef class WordModel(SequenceAligner):
     cdef void offline_init(self,np.ndarray foreign,np.ndarray english)
     cdef double word_prob(self,int foreign,int english,int identifier=?)
     cdef double[:,:] model_table(self)
-
+    cdef np.ndarray model_table_np(self)
+    
 cdef class TreeModel(SequenceAligner):
     pass 
     
@@ -89,7 +90,7 @@ cdef class SparseIBMM2(SparseDistortionModel):
 
 cdef class Alignment:
     cdef int slen,tlen
-    cdef double prob
+    cdef public double prob
     cdef np.ndarray problist,ml
     cdef list _find_best(self)
 
