@@ -77,7 +77,12 @@ in the GeoQuery domain), which will require having prolog installed (https://sic
 See details in ``experiments/`` to see how to run these models. To ensure that the installation was successful, do the following to
 run a test of the neural graph decoder:
 
-    ./run_zubr pipeline bin/neural_model.py --demo_data --dir examples/graph_test --override --model attention --backup_best
+    ./run_zubr pipeline bin/neural_model.py --demo_data --dir
+    examples/graph_test --override --model attention --backup_best
+
+This will create a directory in ``examples/graph_test``, you can look
+at pipeline.log to see the details, and check ``rank_results.txt`` to
+see that it works (it should have an accuracy of 1.0)
 
 Modes and Pipelines
 -----------------
