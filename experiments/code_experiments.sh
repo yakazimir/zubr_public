@@ -61,6 +61,7 @@ wget https://github.com/yakazimir/Code-Datasets/archive/master.zip -O $TECH_DOC/
 echo "...UNZIPPING THE DATA FILE..."
 unzip $TECH_DOC/data.zip -d $TECH_DOC
 echo "...MOVING DATA UP..."
+## remove the bin (don't need it)
 mv -f experiments/technical_documentation/Code-Datasets-master/*/ experiments/technical_documentation/
 
 ## unzip the acl_emnlp files
@@ -72,8 +73,13 @@ rm -rf experiments/technical_documentation/acl_emnlp_naacl
 
 ##unzip the semantic parsing data
 echo "...UNZIPPING THE SEMANTIC PARSING (SP) DATA..."
-unzip $TECH_DOC/other_data/SP $TECH_DOC/other_data
 
+read -p "Unzip the extra Semantic Parsing data (not needed if just running code experiments)? (Y/n)" choice
+case "$choice" in
+    Y ) unzip $TECH_DOC/other_data/SP -d $TECH_DOC/other_data;;
+    n|N ) ;;
+    * ) ;;
+esac 
 
 ## make the run directory
 echo "...MAKING A RUN DIRECTORY"
