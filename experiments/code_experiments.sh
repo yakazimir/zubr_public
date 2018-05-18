@@ -66,7 +66,9 @@ mv -f experiments/technical_documentation/Code-Datasets-master/*/ experiments/te
 
 ## unzip the acl_emnlp files
 echo "...UNZIPPING THE PIPELINE DATA..."
-unzip experiments/technical_documentation/Code-Datasets-master/acl_emnlp_naacl.zip -d $TECH_DOC 
+unzip experiments/technical_documentation/Code-Datasets-master/acl_emnlp_naacl.zip -d $TECH_DOC
+echo "...REMOVING AUXILIARY BIN FILE (NOT NEEDED)..."
+rm -rf $TECH_DOC/bin
 mv -f experiments/technical_documentation/acl_emnlp_naacl/* experiments/technical_documentation
 echo "...REMOVING THE AUXILIARY ACL_EMNLP_NAACL FILE..."
 rm -rf experiments/technical_documentation/acl_emnlp_naacl
