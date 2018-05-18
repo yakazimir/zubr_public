@@ -467,7 +467,7 @@ def __print_rank_file(dir,ranks,base):
         for k,pair in enumerate(ranks):
             print >>o,"%s\t%s\t%s" %\
               (k,pair[0],' '.join([str(i) for i in pair[1]]))
-              
+
 def get_rdata(config,fdict,edict,ttype="test",poly=False):
     """Encode ranking data as numpy array and the testing data
 
@@ -481,7 +481,6 @@ def get_rdata(config,fdict,edict,ttype="test",poly=False):
     :rtype: tuple
     :raises: AlignerLoaderError 
     """
-
     
     ## get data
     if not config.atraining:
@@ -609,8 +608,8 @@ def get_rdata(config,fdict,edict,ttype="test",poly=False):
                 en = np.array([edict.get(w,-1) for w in e],dtype=np.int32)
                 en_input.append(en) 
                 if f not in lookup:
-                    raise AlignerLoaderError('gold output not known: %s, in file: %s' %\
-                                                 (f,config.rfile))
+                    raise AlignerLoaderError('gold output not known: %s, in file: %s, poly=%s' %\
+                                                 (f,config.rfile,str(poly)))
                 fid = lookup[f]
                 gold_ids.append(fid)
 
@@ -632,7 +631,7 @@ def get_rdata(config,fdict,edict,ttype="test",poly=False):
     assert len(languages) == en_input.shape[0],"language identifiers not right"
     languages = np.array(languages,dtype=np.unicode)
     return (rank_list,(en_input,gold_ids),in_order,freq_list,eng,languages)
-    
+
 def get_decoder_data(config,fdict,edict,ttype='valid',poly=False):
     """Get data for word decoder 
 

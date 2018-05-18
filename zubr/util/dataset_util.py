@@ -72,7 +72,11 @@ def __print_poly_ranks(path,ranks,gold,k=100):
     with codecs.open(rank_out,'w',encoding='utf-8') as my_ranks:
         for i in range(total_size):
             rank_pos = gold[i]
-            rank_value = ranks[i][rank_pos]
+            lsize = ranks[i].shape[0]
+            
+            ## always put gold items at the end 
+            if rank_pos > lsize: rank_value = -1
+            else: rank_value = ranks[i][rank_pos]
             print >>my_ranks,"%d\t%d\t%s" % (i,rank_value,' '.join([str(z) for z in ranks[i]][:k]))
     
 def score_rank(workdir,ranks,gold_pos,dtype):
@@ -190,7 +194,8 @@ def score_poly(workdir,langs,ranks,rmap,gold_pos,k,dtype,exc=False):
 
         ## put it as last in the rank if not there
         ## should probably be if rank_pos >= (rank_size -1)
-        if rank_pos == (rank_size -1):
+        #if rank_pos == (rank_size -1):
+        if rank_pos == (rank_size - 1) or rank_pos > rank_size:
             rank_pos = lang_count[language]-1
             
         if rank_pos == 0:

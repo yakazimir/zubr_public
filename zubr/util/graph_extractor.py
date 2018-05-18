@@ -453,9 +453,10 @@ def __create_storage(config,settings):
         exit('Cannot find the train ranks! %s' % train_ranks)
 
     train_ranks = RankStorage.load_backup(config,name='train')
-    if config.beam >= train_ranks.rank_size: 
-        settings.beam = train_ranks.rank_size
-        
+    ## make sure that beam is not the same size as the ranks, since ranks always contain gold 
+    #if config.beam >= train_ranks.rank_size: 
+    settings.beam = (train_ranks.rank_size-10)
+
     util_logger.info('Beam size=%d' % settings.beam)
     query_ranks = RankStorage.load_empty(0,0)
 
