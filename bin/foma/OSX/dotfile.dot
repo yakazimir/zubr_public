@@ -1,0 +1,35 @@
+digraph A {
+rankdir = LR;
+node [shape=circle,style=filled] 0
+node [shape=circle,style=filled] 1
+node [shape=circle,style=filled] 2
+node [shape=circle,style=filled] 3
+node [shape=circle,style=filled] 4
+node [shape=doublecircle,style=filled] 5
+node [shape=circle,style=filled] 6
+node [shape=circle,style=filled] 7
+node [shape=circle,style=filled] 8
+node [shape=circle,style=filled] 9
+node [shape=circle,style=filled] 10
+node [shape=circle,style=filled] 11
+node [shape=circle,style=filled] 12
+node [shape=circle,style=filled] 13
+node [shape=circle,style=filled] 14
+0 -> 10 [label="regex "];
+0 -> 1 [label="string "];
+1 -> 8 [label="trim "];
+1 -> 6 [label="join "];
+1 -> 2 [label="split "];
+2 -> 3 [label="s "];
+3 -> 4 [label="re "];
+4 -> 5 [label="limit "];
+6 -> 7 [label="separator "];
+7 -> 5 [label="coll "];
+8 -> 9 [label="newline "];
+9 -> 5 [label="s "];
+10 -> 11 [label="data "];
+11 -> 12 [label="avl "];
+12 -> 13 [label="split "];
+13 -> 14 [label="key "];
+14 -> 7 [label="k "];
+}
