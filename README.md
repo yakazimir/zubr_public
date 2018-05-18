@@ -227,7 +227,7 @@ License
 
 Free software: GPL2 license. See LICENSE in this directory for more
 information. For the various dependencies (e.g., Dynet, Foma, ...)
-please observe the licenses provided there. 
+please observe the licenses provided. 
 
 References
 ----------------
