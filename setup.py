@@ -31,6 +31,93 @@ exec(open(os.path.join(PROJECT_DIR,'zubr/_version.py')).read())
 
 ## EXTRA MODULES, LIBRARIES
 
+def setup_srilm(config):
+    """Setup up the srilm if specified 
+
+    :param config: the zubr setup configuration
+    :rtype: list
+    :raises: ValueError
+    """
+    
+    if config.srilm and config.arch:
+        ## check that it exists 
+        if not os.path.isdir(config.srilm):
+            raise ValueError('Cannot find the specified srilm library')
+
+        include_dir = os.path.join(config.srilm,"include")
+        lib_dir = os.path.join(config.srilm,"lib",config.arch)
+
+        ## make the extension
+        return [
+            Extension("zubr/pysrilm/srilm",
+                    ["zubr/pysrilm/srilm.pyx"],
+                    language="c++",
+                    include_dirs=[include_dir],
+                    libraries=["oolm", "dstruct", "misc", "z", "gomp"],
+                    library_dirs=[lib_dir],
+                    extra_compile_args=['-fopenmp', '-fPIC'],
+            )]
+
+    return []
+
+def setup_dynet(config):
+    """Setup the dynet cython library bindings if available/specified 
+
+    note : this setup is specific to building the cpu version of
+    dynet. 
+
+    :param config: the zubr setup configuration
+    :rtpe: list 
+    :raises: ValueError
+    """
+
+    if config.dynet:
+        ## check that it exists
+        if not os.path.isdir(config.dynet) or not os.path.isdir(config.eigen):
+            raise ValueError('Cannot find the dynet library!')
+
+        dynet_loc = config.dynet
+        eigen_loc = config.eigen
+        boost_loc = config.boost
+        lib_dir   = os.path.join(dynet_loc,"build/dynet")
+        extra     = []
+
+        if platform.system() == "Darwin":
+            extra.append("-mmacosx-version-min=10.7")                        
+
+        return [
+            Extension("zubr/neural/_dynet",
+                          ["zubr/neural/_dynet.pyx"],
+                          language="c++",
+                          include_dirs = [
+                              dynet_loc,
+                              eigen_loc,
+                              boost_loc,
+                          ],
+                          libraries=["dynet"],
+                          library_dirs=[lib_dir,"zubr/neural"],
+                          extra_compile_args=["-std=c++11"]+extra,
+                          runtime_library_dirs=[lib_dir]),
+            Extension("zubr/neural/Seq2Seq",
+                          ["zubr/neural/Seq2Seq.pyx"],
+                          language="c++",
+                          include_dirs = [
+                              dynet_loc,
+                              eigen_loc,
+                              boost_loc,
+                          ],
+                          extra_compile_args=["--std=c++11"]+extra),
+            Extension("zubr/neural/ShortestPathDecoder",
+                          ["zubr/neural/ShortestPathDecoder.pyx"],
+                          language="c++",
+                          include_dirs = [
+                              dynet_loc,
+                              eigen_loc,
+                              boost_loc,
+                          ],
+                          extra_compile_args=["--std=c++11"]+extra,
+                          )]
+    return []
 
 ### EXTRA SETTINGS AND OPTIONAL DEPENDENCIES
 
@@ -46,8 +133,8 @@ OPTIONS = [
 ## where the key refers to the function that builds the cython or c extension
     
 DEPS = {
-    #"dynet" : setup_dynet,
-    #"srilm" : setup_srilm,
+    "dynet" : setup_dynet,
+    "srilm" : setup_srilm,
 }
 
 DEP_CONFIG = ConfigObj(OPTIONS,{}).parse_known_args(sys.argv[1:])

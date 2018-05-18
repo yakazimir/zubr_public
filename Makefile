@@ -25,14 +25,13 @@ clean-pyc:
 	find . -name '*~' -exec rm -f {} +
 
 clean-cython:
-	rm -rf zubr/*.so
-	rm -rf zubr/*.c
-	rm -rf zubr/*.cpp
+	find zubr/ -name '*.so' -exec rm -f {} +
+	find zubr/ -name '*.c' -exec rm -f {} +
 
 clean: clean-build clean-pyc clean-cython
 
 build-ext:
-	python setup.py build_ext --inplace
+	python setup.py build_ext --inplace --dynet=$(DYNET) --srilm=$(SRILM) --eigen=$(EIGEN)
 
 build-local:
 	virtualenv -p python zubr_env &&\
