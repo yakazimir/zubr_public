@@ -41,4 +41,17 @@ The executable models for querying prolog databases (e.g., in the
 Geoquery domain) have all sorts of annoying issues... despite my best
 efforts, they don't always exit swipl prolog after a failure. Also,
 the subprocess module tends to fail when multiple instances of prolog
-are being called, meaning that it's best to run experiments individually.
+are being called, meaning that it's best to run experiments
+individually.
+
+When running an executable semantic parser, the prolog crashes when
+run along side multiple instances, so you should read each model
+separately. 
+
+numpy/cython version differences?
+----------------------------------------
+The library was largely developed using Python 2.7, numpy 1.13.1 and
+cython 0.23.4; I noticed some weird errors and slightly varied
+experimental results (nothing signficiant, as far as I can tell) when
+the servers were updated to Cython 0.28.5 and numpy 1.15.1. Be mindful
+of this is something doesn't work.
