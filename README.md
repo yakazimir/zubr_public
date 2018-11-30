@@ -85,7 +85,8 @@ This will create a directory in ``examples/graph_test``, you can look
 at pipeline.log to see the details, and check ``rank_results.txt`` to
 see that it works (it should have an accuracy of 1.0). To see what the
 pipeline/log looks like when I ran it on my computer, see
-examples/demo_data/pipeline.log 
+examples/demo_data/pipeline.log (compare e.g., the train and
+validation loss after each epoch)
 
 Modes and Pipelines
 -----------------
