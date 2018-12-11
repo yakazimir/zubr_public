@@ -46,7 +46,10 @@ individually.
 
 When running an executable semantic parser, the prolog crashes when
 run along side multiple instances, so you should read each model
-separately. 
+separately.
+
+In general, if you get a crash, you might need to manually shut off/kill of  
+swipl. 
 
 numpy/cython version differences?
 ----------------------------------------
