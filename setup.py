@@ -86,7 +86,7 @@ def setup_dynet(config):
             extra.append("-mmacosx-version-min=10.7")                        
 
         return [
-            Extension("zubr/neural/_dynet",
+            Extension("zubr.neural._dynet",
                           ["zubr/neural/_dynet.pyx"],
                           language="c++",
                           include_dirs = [
@@ -98,7 +98,7 @@ def setup_dynet(config):
                           library_dirs=[lib_dir,"zubr/neural"],
                           extra_compile_args=["-std=c++11"]+extra,
                           runtime_library_dirs=[lib_dir]),
-            Extension("zubr/neural/Seq2Seq",
+            Extension("zubr.neural.Seq2Seq",
                           ["zubr/neural/Seq2Seq.pyx"],
                           language="c++",
                           include_dirs = [
@@ -107,7 +107,7 @@ def setup_dynet(config):
                               boost_loc,
                           ],
                           extra_compile_args=["--std=c++11"]+extra),
-            Extension("zubr/neural/ShortestPathDecoder",
+            Extension("zubr.neural.ShortestPathDecoder",
                           ["zubr/neural/ShortestPathDecoder.pyx"],
                           language="c++",
                           include_dirs = [

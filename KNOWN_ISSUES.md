@@ -41,4 +41,42 @@ The executable models for querying prolog databases (e.g., in the
 Geoquery domain) have all sorts of annoying issues... despite my best
 efforts, they don't always exit swipl prolog after a failure. Also,
 the subprocess module tends to fail when multiple instances of prolog
-are being called, meaning that it's best to run experiments individually.
+are being called, meaning that it's best to run experiments
+individually.
+
+When running an executable semantic parser, the prolog crashes when
+run along side multiple instances, so you should read each model
+separately.
+
+In general, if you get a crash, you might need to manually shut off/kill of  
+swipl. 
+
+numpy/cython version differences?
+----------------------------------------
+The library was largely developed using Python 2.7, numpy 1.13.1 and
+cython 0.23.4; I noticed some weird errors and slightly varied
+experimental results (nothing signficiant, as far as I can tell) when
+the servers were updated to Cython 0.28.5 and numpy 1.15.1. Be mindful
+of this is something doesn't work.
+
+Datasets with constant length
+---------------------------------------
+Datasets are treated as 2d np array objects with np.object dtypes,
+which allows for variable row lengths (i.e., different input
+lengths). However, when the length is constant across all examples, numpy automatically
+makes the internal dimension immutable, and throws a ValueError if you
+try to modify the entries to representation with a different dimension
+(this happens in zubr/neural/util when we take the original data
+representations and pad them with EOS labels, which increases the
+dimension by 1). This also somehow screws up the Alignment classes,
+since it appears to be using the .shape attribute without expecting a
+second dimension (this is speculatio)
+
+Neural Graph Decoders
+-------------------------------------------
+The neural graph decoders (and the neural machinery more generally) does 
+not scale well with vocabulary size; in particular, training the code
+models in the NAACL paper and doing decoding takes ages. There are many
+optimizations possible here that need to be implemented, just keep in mind
+that the neural models were primarily developed for small semantic parisng datasets
+of the geoquery variety.   

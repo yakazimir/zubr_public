@@ -1,0 +1,67 @@
+INFO:zubr.Pipeline.Pipeline:input: pipeline bin/neural_model.py --demo_data --epochs 3 --dir examples/graph_test --override --model attention --backup_best
+INFO:zubr.Pipeline.Pipeline:finished task: neural_model.setup_data,level=0
+INFO:zubr.wrapper.foma:Building a sentence dfa network...
+INFO:zubr.wrapper.foma:Creating the foma script...
+INFO:zubr.wrapper.foma:Running the script and compiling the network
+INFO:zubr.wrapper.foma:Built network in 7.84886407852 seconds
+INFO:zubr.wrapper.foma:Pruning the multiple edge labels...
+INFO:zubr.wrapper.foma:Still has multiple edges, running again...
+INFO:zubr.wrapper.foma:New graph now does not have multiple edges...
+INFO:zubr.Pipeline.Pipeline:finished task: zubr.wrapper.foma.main,level=1
+INFO:zubr.Pipeline.Pipeline:finished task: neural_model.link_graph,level=2
+DEBUG:zubr.util.alignment_util:using alignment directory at: /media/sf_projects/zubr/examples/graph_test/alignment
+DEBUG:zubr.util.alignment_util:data not found (or incomplete), building dataset.., (english=e,foreign=f)
+DEBUG:zubr.util.alignment_util:finished parsing training data, now encoding...
+INFO:zubr.neural.util:foreign side <EOS> located at: 5
+INFO:zubr.neural.util:english side <EOS> located at: 5
+INFO:zubr.neural.util:Added OOV examples in training...
+INFO:zubr.neural.util:Finished adding OOV: e=201 (/28239),f=0 (/28239)
+WARNING:zubr.util.aligner_util:testing sentence #37 skipped (too short, <= 1)
+INFO:zubr.neural.util:Train data contains 3000 examples
+INFO:zubr.neural.util:Validation data contains 49 examples
+INFO:zubr.ZubrClass.AttentiveEncoderDecoder:Initialized model, has_lex=False,interpolate=False, lex_param=0.001000, interp_param=0.000000,copy=False
+INFO:zubr.ZubrClass.AttentiveEncoderDecoder:Built model in 0.044331 seconds, embedding size=10,enc vocab size=6, dec vocab size=6,trainer=sgd,# copies 0
+INFO:zubr.util.decoder_util:cyclic=False
+INFO:zubr.ZubrClass.NeuralSPDecoder:Training the underlying model...
+INFO:zubr.ZubrClass.Seq2SeqLearner:Beginning the training loop
+DEBUG:zubr.util.alignment_util:found aligner directory..
+DEBUG:zubr.util.alignment_util:checking for alignment data...
+DEBUG:zubr.util.alignment_util:found numpy training data..
+INFO:zubr.neural.util:foreign side <EOS> located at: 5
+INFO:zubr.neural.util:english side <EOS> located at: 5
+INFO:zubr.neural.util:Added OOV examples in training...
+INFO:zubr.neural.util:Finished adding OOV: e=201 (/28239),f=0 (/28239)
+WARNING:zubr.util.aligner_util:testing sentence #37 skipped (too short, <= 1)
+INFO:zubr.neural.util:Train data contains 3000 examples
+INFO:zubr.neural.util:Validation data contains 49 examples
+WARNING:zubr.neural.util:No reranker data found, skipping!!!
+INFO:zubr.ZubrClass.Seq2SeqLearner:Starting epoch 0
+INFO:zubr.ZubrClass.ParallelDataset:Shuffled dataset order...
+INFO:zubr.neural.util:backing up best model after epoch: 1
+INFO:zubr.ZubrClass.AttentiveEncoderDecoder:Finished saving in 0.198924779892 seconds
+INFO:zubr.ZubrClass.Seq2SeqLearner:Finished iteration 1 in 4.93298602104 seconds, ran val in 0.0263071060181 seconds, train_loss=15551.1380147, train ppl=1.73446184995, val loss=56.4053982724, val ppl=1.12896573153
+INFO:zubr.ZubrClass.Seq2SeqLearner:Starting epoch 1
+INFO:zubr.ZubrClass.ParallelDataset:Shuffled dataset order...
+INFO:zubr.neural.util:backing up best model after epoch: 2
+INFO:zubr.ZubrClass.AttentiveEncoderDecoder:Finished saving in 0.091686964035 seconds
+INFO:zubr.ZubrClass.Seq2SeqLearner:Finished iteration 2 in 4.75430989265 seconds, ran val in 0.0260620117188 seconds, train_loss=1178.62241781, train ppl=1.04262064985, val loss=22.0043134237, val ppl=1.04845861943
+INFO:zubr.ZubrClass.Seq2SeqLearner:Starting epoch 2
+INFO:zubr.ZubrClass.ParallelDataset:Shuffled dataset order...
+INFO:zubr.neural.util:backing up best model after epoch: 3
+INFO:zubr.ZubrClass.AttentiveEncoderDecoder:Finished saving in 0.0955820083618 seconds
+INFO:zubr.ZubrClass.Seq2SeqLearner:Finished iteration 3 in 4.18216896057 seconds, ran val in 0.0264790058136 seconds, train_loss=381.811036654, train ppl=1.01361251763, val loss=0.0735662674706, val ppl=1.00015821954
+INFO:zubr.ZubrClass.Seq2SeqLearner:Best validation run: 3
+INFO:zubr.neural.util:Loading best model from epoch=2
+INFO:zubr.ZubrClass.AttentiveEncoderDecoder:Initialized model, has_lex=False,interpolate=False, lex_param=0.001000, interp_param=0.000000,copy=False
+INFO:zubr.ZubrClass.AttentiveEncoderDecoder:Built model in 0.064996 seconds, embedding size=10,enc vocab size=6, dec vocab size=6,trainer=sgd
+INFO:zubr.ZubrClass.Seq2SeqLearner:Finished training in 15.250750 seconds
+WARNING:zubr.util.aligner_util:testing sentence #37 skipped (too short, <= 1)
+INFO:zubr.ZubrClass.NeuralSPDecoder:Decoding with k=100, eval_set=valid, dsize=49, ignore oov=False, num jobs=2, cyclic=False
+INFO:zubr.ZubrClass.NeuralSPDecoder:Decoded and scored 49 sentences in 7.74296021461 seconds (0 not in beam)
+INFO:zubr.ZubrClass.RankStorage:Computed <baseline> score in 0.320781 seconds
+INFO:zubr.ZubrClass.Seq2SeqLearner:Backing up underlying neural components...
+INFO:zubr.ZubrClass.Seq2SeqLearner:making the neural directory...
+INFO:zubr.ZubrClass.AttentiveEncoderDecoder:Finished saving in 0.0817270278931 seconds
+INFO:zubr.ZubrClass.WordGraph:Backed up in 0.0176041126251 seconds
+INFO:zubr.ZubrClass.NeuralSPDecoder:Backed up in 0.350153923035 seconds
+INFO:zubr.Pipeline.Pipeline:finished task: zubr.neural.run.main,level=3
