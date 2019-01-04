@@ -79,4 +79,10 @@ not scale well with vocabulary size; in particular, training the code
 models in the NAACL paper and doing decoding takes ages. There are many
 optimizations possible here that need to be implemented, just keep in mind
 that the neural models were primarily developed for small semantic parisng datasets
-of the geoquery variety.   
+of the geoquery variety.
+
+No Python3 support
+------------------------------------------
+The current version of the toolkit is only usable with python2, should
+be updated to be python3 compatbile (should be fairly easy since most
+cython code should already be compatible)
