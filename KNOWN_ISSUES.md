@@ -86,3 +86,10 @@ No Python3 support
 The current version of the toolkit is only usable with python2, should
 be updated to be python3 compatbile (should be fairly easy since most
 cython code should already be compatible)
+
+SparseIBM1 gets stuck
+------------------------------------------
+The sparse IBM model 1 model gets stuck when decoding with really
+large lexical tables (e.g., tables trained with more than one million
+examples).. It seems to get stuck in some kind of inifinite loop,
+likely at the point when it is doing parameter lookup in the sparse 1d matrix
