@@ -1,7 +1,7 @@
 Zubr: A Semantic Parsing Toolkit (Version 2.0)
 ==================
 
-This is a cython/python toolkit for building semantic parsing
+This is a cython/python (currently py27) toolkit for building semantic parsing
 models (with a focus on certain types of text-to-code translation models). See references for related work. 
 
 Please use at your own risk, this is academic code and not well tested
@@ -68,7 +68,7 @@ included in this distribution in bin/foma).
 
 Once you have installed Dynet (and its dependencies, e.g., Eigen and
 Boost) and Foma, be sure to set the environment variables ``$DYNET,
-$EIGEN, $BOOST``. With these variables set, the ``make`` command above
+$EIGEN, $BOOST``. With these variables set, the ``make build-ext`` command above
 should do the rest.
 
 We also have code for running ``executable'' semantic parsers (e.g.,
@@ -230,7 +230,8 @@ python setup.py test):
 Author
 ----------------
 
-Kyle Richardson (University of Stuttgart)
+Kyle Richardson (formely University of Stuttgart, now at Allen
+Institute for AI)
 
 *kyle@ims.uni-stuttgart.de*
 
