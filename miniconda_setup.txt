@@ -1,0 +1,5 @@
+conda create -n "zubr" python=3.7
+pip install -r requirements.txt
+pip install numpy==1.13.1
+pip install cython==0.23.4
+make build-ext
