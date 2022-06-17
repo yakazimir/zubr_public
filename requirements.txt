@@ -1,4 +1,4 @@
-pyYaml==3.11
+pyYaml==5.4
 nose==1.3.7
 numpy==1.21.0
 cython==0.23.4
